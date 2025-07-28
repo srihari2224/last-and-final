@@ -5,13 +5,7 @@ import QRCode from "qrcode"
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 // Configure AWS SDK
-const s3 = new S3Client({
-  region: import.meta.env.VITE_AWS_REGION,
-  credentials: {
-    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
-    secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-  },
-})
+
 const FILE_STORAGE_BUCKET = import.meta.env.VITE_FILE_STORAGE_BUCKET
 
 const FileTransferPage = ({ onGoHome }) => {
