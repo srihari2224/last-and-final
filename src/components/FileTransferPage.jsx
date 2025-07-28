@@ -2,11 +2,6 @@
 
 import { useState, useEffect } from "react"
 import QRCode from "qrcode"
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3"
-
-// Configure AWS SDK
-
-const FILE_STORAGE_BUCKET = import.meta.env.VITE_FILE_STORAGE_BUCKET
 
 const FileTransferPage = ({ onGoHome }) => {
   const [sessionId, setSessionId] = useState("")
@@ -20,9 +15,8 @@ const FileTransferPage = ({ onGoHome }) => {
     const newSessionId = Math.random().toString(36).substring(2, 15)
     setSessionId(newSessionId)
 
-    // Replace with your actual S3 static website URL
-    const staticWebsiteUrl = "http://nitc.s3-website.ap-south-1.amazonaws.com/"
-    const qrUrl = `${staticWebsiteUrl}scan.html?session=${newSessionId}`
+    // Use the S3 domain for scan.html
+    const qrUrl = `http://nit-calicut.s3-website.ap-south-1.amazonaws.com/scan.html?session=${newSessionId}`
 
     console.log("QR Code URL:", qrUrl)
 
@@ -43,51 +37,44 @@ const FileTransferPage = ({ onGoHome }) => {
       })
 
     // Initial file load
-    fetchFilesFromS3(newSessionId)
+    fetchFilesFromBackend(newSessionId)
 
-    // Poll for files every 3 seconds
+    // Smart polling - only when user is active
+    let isUserActive = true;
+    
+    // Stop polling when user switches tabs
+    document.addEventListener('visibilitychange', () => {
+      isUserActive = !document.hidden;
+    });
+    
+    // Poll for files every 10 seconds (reduced from 3)
     const interval = setInterval(() => {
-      fetchFilesFromS3(newSessionId)
-    }, 3000)
+      if (isUserActive) {
+        fetchFilesFromBackend(newSessionId)
+      }
+    }, 10000) // 10 seconds instead of 3
 
     return () => clearInterval(interval)
   }, [])
 
-  const fetchFilesFromS3 = async (sessionId) => {
+  const fetchFilesFromBackend = async (sessionId) => {
     try {
       setLoading(true)
       console.log(`🔍 Fetching files for session: ${sessionId}`)
 
-      // List objects in S3 bucket with session prefix
-      const params = {
-        Bucket: FILE_STORAGE_BUCKET,
-        Prefix: `${sessionId}/`, // Only get files for this session
+      // Call backend API to get files
+      const response = await fetch(`https://upload-backend-api.vercel.app/api/list-files?session=${sessionId}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const command = new ListObjectsV2Command(params)
-      const data = await s3.send(command)
-      console.log("📁 S3 Response:", data)
+      const data = await response.json()
+      console.log("📁 Backend Response:", data)
 
-      if (data.Contents && data.Contents.length > 0) {
-        // Convert S3 objects to file objects
-        const fileList = data.Contents.map((item) => {
-          // Extract original filename (remove timestamp prefix)
-          const originalName = item.Key.split("/").pop().replace(/^\d+-/, "")
-
-          return {
-            key: item.Key,
-            name: originalName,
-            size: item.Size,
-            uploadTime: item.LastModified,
-            url: `https://${FILE_STORAGE_BUCKET}.s3.${import.meta.env.VITE_AWS_REGION}.amazonaws.com/${item.Key}`,
-          }
-        })
-
-        // Sort by upload time (newest first)
-        fileList.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime))
-
-        setFiles(fileList)
-        console.log(`✅ Found ${fileList.length} files:`, fileList)
+      if (data.files && data.files.length > 0) {
+        setFiles(data.files)
+        console.log(`✅ Found ${data.files.length} files:`, data.files)
       } else {
         setFiles([])
         console.log("📭 No files found for this session")
@@ -95,7 +82,7 @@ const FileTransferPage = ({ onGoHome }) => {
 
       setLastChecked(new Date())
     } catch (error) {
-      console.error("❌ Error fetching files from S3:", error)
+      console.error("❌ Error fetching files from backend:", error)
     } finally {
       setLoading(false)
     }
@@ -124,17 +111,25 @@ const FileTransferPage = ({ onGoHome }) => {
     if (!confirm(`Are you sure you want to delete "${fileName}"?`)) return
 
     try {
-      const params = {
-        Bucket: FILE_STORAGE_BUCKET,
-        Key: fileKey,
+      const response = await fetch(`https://upload-backend-api.vercel.app/api/delete-file`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session: sessionId,
+          key: fileKey
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const command = new DeleteObjectCommand(params)
-      await s3.send(command)
       console.log(`🗑️ Deleted file: ${fileName}`)
 
       // Refresh file list
-      fetchFilesFromS3(sessionId)
+      fetchFilesFromBackend(sessionId)
     } catch (error) {
       console.error("❌ Error deleting file:", error)
       alert("Failed to delete file. Please try again.")
@@ -182,7 +177,7 @@ const FileTransferPage = ({ onGoHome }) => {
               <h2>File Storage</h2>
               <button
                 className="refresh-btn"
-                onClick={() => fetchFilesFromS3(sessionId)}
+                onClick={() => fetchFilesFromBackend(sessionId)}
                 disabled={loading}
                 style={{
                   background: "#000",
@@ -213,7 +208,7 @@ const FileTransferPage = ({ onGoHome }) => {
                         borderRadius: "4px",
                       }}
                     >
-                      s3://{FILE_STORAGE_BUCKET}/{sessionId}/
+                      s3://storagenitc/{sessionId}/
                     </p>
                   </div>
                 </div>
