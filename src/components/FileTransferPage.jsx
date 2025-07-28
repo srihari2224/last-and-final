@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from "react"
 import QRCode from "qrcode"
-import AWS from "aws-sdk"
+import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 // Configure AWS SDK
-AWS.config.update({
-  accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
-  secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
+const s3 = new S3Client({
   region: import.meta.env.VITE_AWS_REGION,
+  credentials: {
+    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
+    secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
+  },
 })
-
-const s3 = new AWS.S3()
 const FILE_STORAGE_BUCKET = import.meta.env.VITE_FILE_STORAGE_BUCKET
 
 const FileTransferPage = ({ onGoHome }) => {
@@ -28,13 +28,7 @@ const FileTransferPage = ({ onGoHome }) => {
 
     // Replace with your actual S3 static website URL
     const staticWebsiteUrl = "http://nitc.s3-website.ap-south-1.amazonaws.com/"
-    const mobileUploadUrl = `${staticWebsiteUrl}/scan.html?session=${newSessionId}`
-
-    // For local development, use localhost
-    const isDevelopment = window.location.hostname === "localhost"
-    const qrUrl = isDevelopment
-      ? `http://localhost:5173/mobile-upload/scan.html?session=${newSessionId}`
-      : mobileUploadUrl
+    const qrUrl = `${staticWebsiteUrl}scan.html?session=${newSessionId}`
 
     console.log("QR Code URL:", qrUrl)
 
@@ -76,7 +70,8 @@ const FileTransferPage = ({ onGoHome }) => {
         Prefix: `${sessionId}/`, // Only get files for this session
       }
 
-      const data = await s3.listObjectsV2(params).promise()
+      const command = new ListObjectsV2Command(params)
+      const data = await s3.send(command)
       console.log("📁 S3 Response:", data)
 
       if (data.Contents && data.Contents.length > 0) {
@@ -140,7 +135,8 @@ const FileTransferPage = ({ onGoHome }) => {
         Key: fileKey,
       }
 
-      await s3.deleteObject(params).promise()
+      const command = new DeleteObjectCommand(params)
+      await s3.send(command)
       console.log(`🗑️ Deleted file: ${fileName}`)
 
       // Refresh file list
