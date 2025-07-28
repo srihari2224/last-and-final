@@ -7,6 +7,12 @@
     <title>Vite + React</title>
   </head>
   <body>
+    <script>
+      // Provide a fallback for the 'global' object in browser environments
+      if (typeof global === "undefined") {
+        window.global = window;
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
