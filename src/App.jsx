@@ -1,14 +1,26 @@
-import { useState } from 'react'
-import './App.css'
+"use client"
+
+import { useState } from "react"
+import HomePage from "./components/HomePage"
+import FileTransferPage from "./components/FileTransferPage"
+import "./App.css"
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState("home")
+
+  const goToFileTransfer = () => {
+    setCurrentPage("fileTransfer")
+  }
+
+  const goToHome = () => {
+    setCurrentPage("home")
+  }
 
   return (
-    
-      <div>hi</div>
-      
-    
+    <div className="app">
+      {currentPage === "home" && <HomePage onGetStarted={goToFileTransfer} />}
+      {currentPage === "fileTransfer" && <FileTransferPage onGoHome={goToHome} />}
+    </div>
   )
 }
 
