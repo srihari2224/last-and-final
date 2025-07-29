@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import QRCode from "qrcode"
 
-const FileTransferPage = ({ onGoHome }) => {
+const FileTransferPage = ({ onGoHome, onGoToFilePage }) => {
   const [sessionId, setSessionId] = useState("")
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [files, setFiles] = useState([])
@@ -219,6 +219,20 @@ const FileTransferPage = ({ onGoHome }) => {
     setSelectedFiles([]);
   };
 
+  const handleNextClick = () => {
+    if (selectedFiles.length === 0) {
+      alert("Please select at least one file to proceed.");
+      return;
+    }
+    
+    // Pass selected files and session data to the next page
+    onGoToFilePage({
+      selectedFiles,
+      sessionId,
+      allFiles: files
+    });
+  };
+
   return (
     <div className="file-transfer-page">
       <div className="container">
@@ -385,6 +399,31 @@ const FileTransferPage = ({ onGoHome }) => {
                         <span style={{ fontWeight: "bold", color: "#28a745" }}>
                           📁 {selectedFiles.length} file{selectedFiles.length !== 1 ? "s" : ""} selected
                         </span>
+                        <button
+                          onClick={handleNextClick}
+                          style={{
+                            background: "#28a745",
+                            color: "#fff",
+                            border: "none",
+                            padding: "0.75rem 1.5rem",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "1rem",
+                            fontWeight: "bold",
+                            boxShadow: "0 2px 4px rgba(40, 167, 69, 0.3)",
+                            transition: "all 0.2s ease",
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.background = "#218838";
+                            e.target.style.transform = "translateY(-1px)";
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.background = "#28a745";
+                            e.target.style.transform = "translateY(0)";
+                          }}
+                        >
+                          Next →
+                        </button>
                       </div>
                     </div>
                   )}
