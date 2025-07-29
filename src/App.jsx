@@ -16,6 +16,8 @@ function App() {
     setCurrentPage("home")
   }
 
+  
+
   return (
     <div className="app">
       {currentPage === "home" && <HomePage onGetStarted={goToFileTransfer} />}
