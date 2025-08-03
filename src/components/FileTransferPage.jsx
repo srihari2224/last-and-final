@@ -76,91 +76,79 @@ const FileTransferPage = () => {
       setLoading(true)
       console.log(`🔍 Fetching files for session: ${sessionId}`)
 
-      // Call backend API to get files
-      const response = await fetch(`https://upload-backend-api.vercel.app/api/list-files?session=${sessionId}`)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // Check if we're in Electron and use local files
+      if (window.electronAPI) {
+        console.log("🔌 Using Electron API for local files")
+        try {
+          const result = await window.electronAPI.getLocalFiles(sessionId)
+          console.log("📁 Electron Local Files Response:", result)
+          
+          if (result.files && result.files.length > 0) {
+            setFiles(result.files)
+            console.log(`✅ Found ${result.files.length} local files via Electron:`, result.files)
+            return // Found local files, no need to check S3
+          } else {
+            console.log("📭 No local files found for this session via Electron")
+            // Continue to download from S3
+          }
+        } catch (electronError) {
+          console.error("❌ Electron API error:", electronError)
+          // Fallback to web API
+        }
       }
 
-      const data = await response.json()
-      console.log("📁 Backend Response:", data)
+      // Get S3 files and download them locally (for Electron) or show them (for web)
+      console.log("🌐 Fetching S3 files")
+      
+      const s3Response = await fetch(`https://upload-backend-api.vercel.app/api/list-files?session=${sessionId}`)
+      
+      if (!s3Response.ok) {
+        console.warn("⚠️ Could not fetch S3 files")
+        return
+      }
 
-      if (data.files && data.files.length > 0) {
-        setFiles(data.files)
-        console.log(`✅ Found ${data.files.length} files:`, data.files)
+      const s3Data = await s3Response.json()
+      console.log("📁 S3 Files Response:", s3Data)
+
+      if (s3Data.files && s3Data.files.length > 0) {
+        console.log(`📋 Found ${s3Data.files.length} files in S3:`, s3Data.files)
+
+        // If in Electron, download files to local storage
+        if (window.electronAPI) {
+          console.log("🔌 Downloading S3 files to local storage via Electron")
+          try {
+            const downloadResult = await window.electronAPI.downloadS3Files(sessionId, s3Data.files)
+            console.log("📥 Download result:", downloadResult)
+            
+            if (downloadResult.success) {
+              // Get the newly downloaded local files
+              const localResult = await window.electronAPI.getLocalFiles(sessionId)
+              if (localResult.files && localResult.files.length > 0) {
+                setFiles(localResult.files)
+                console.log(`✅ Found ${localResult.files.length} local files after download:`, localResult.files)
+                return
+              }
+            }
+          } catch (downloadError) {
+            console.error("❌ Download error:", downloadError)
+          }
+        }
+
+        // For web or if Electron download failed, show S3 files directly
+        console.log("🌐 Showing S3 files directly (web mode)")
+        setFiles(s3Data.files)
       } else {
         setFiles([])
-        console.log("📭 No files found for this session")
+        console.log("📭 No files found in S3 for this session")
       }
     } catch (error) {
-      console.error("❌ Error fetching files from backend:", error)
+      console.error("❌ Error fetching files:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const downloadFile = async (file, index) => {
-    try {
-      // Set downloading state for this specific file
-      setDownloading(prev => ({ ...prev, [index]: true }))
-      
-      console.log(`📥 Starting download for: ${file.name}`)
 
-      // Call your backend API to get the download URL or file content
-      const response = await fetch(`https://upload-backend-api.vercel.app/api/download-file?key=${encodeURIComponent(file.key)}`)
-
-      if (!response.ok) {
-        throw new Error(`Download failed! status: ${response.status}`)
-      }
-
-      // Check if the response is a JSON with a download URL or the actual file blob
-      const contentType = response.headers.get('content-type')
-      
-      if (contentType && contentType.includes('application/json')) {
-        // Backend returns a download URL
-        const data = await response.json()
-        if (data.downloadUrl) {
-          // Create a temporary link to trigger download
-          const link = document.createElement('a')
-          link.href = data.downloadUrl
-          link.download = file.name
-          link.target = '_blank'
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-        }
-      } else {
-        // Backend returns the file directly as blob
-        const blob = await response.blob()
-        
-        // Create a download link
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = file.name
-        document.body.appendChild(link)
-        link.click()
-        
-        // Cleanup
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      }
-
-      console.log(`✅ Successfully downloaded: ${file.name}`)
-
-    } catch (error) {
-      console.error(`❌ Error downloading file ${file.name}:`, error)
-      alert(`Failed to download ${file.name}. Please try again.`)
-    } finally {
-      // Remove downloading state for this file
-      setDownloading(prev => {
-        const newState = { ...prev }
-        delete newState[index]
-        return newState
-      })
-    }
-  }
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes"
@@ -187,6 +175,8 @@ const FileTransferPage = () => {
     }
     // If showFiles is true, do nothing - only refresh button should work
   }
+
+
 
   return (
     <div className="file-transfer-page">
@@ -220,6 +210,23 @@ const FileTransferPage = () => {
           <div className="session-info">
             <img src={sessionIcon} alt="Session" className="session-icon" />
             <span className="session-id">{sessionId}</span>
+            <button 
+              onClick={() => {
+                window.location.reload();
+              }}
+              style={{ 
+                marginLeft: '10px', 
+                padding: '2px 8px', 
+                fontSize: '10px',
+                background: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer'
+              }}
+            >
+              Refresh
+            </button>
           </div>
         </div>
 
@@ -248,6 +255,7 @@ const FileTransferPage = () => {
                       <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                     </svg>
                   </button>
+
                 </div>
                 {loading ? (
                   <div className="loading-state">Loading files...</div>
@@ -262,31 +270,7 @@ const FileTransferPage = () => {
                           <p>{formatFileSize(file.size)}</p>
                           <p>{new Date(file.uploadTime).toLocaleString()}</p>
                         </div>
-                        <div className="file-actions">
-                          <button 
-                            className="download-btn"
-                            onClick={() => downloadFile(file, index)}
-                            disabled={downloading[index]}
-                          >
-                            {downloading[index] ? (
-                              <>
-                                <svg className="download-icon spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                                </svg>
-                                Downloading...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                                  <polyline points="7 10 12 15 17 10"/>
-                                  <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                Download
-                              </>
-                            )}
-                          </button>
-                        </div>
+
                       </div>
                     ))}
                   </div>
