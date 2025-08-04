@@ -7,6 +7,8 @@ import "./FileTransferPage.css"
 import sessionIcon from "../assets/session.svg"
 import storageIcon from "../assets/storage.svg"
 import wifiIcon from "../assets/wifi.svg"
+import PDFPreviewWindow from "./PDFPreviewWindow"
+import PrintQueue from "./PrintQueue"
 
 const FileTransferPage = () => {
   const navigate = useNavigate()
@@ -18,6 +20,9 @@ const FileTransferPage = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showFiles, setShowFiles] = useState(false)
+  const [selectedPDF, setSelectedPDF] = useState(null)
+  const [showPDFPreview, setShowPDFPreview] = useState(false)
+  const [showPrintQueue, setShowPrintQueue] = useState(false)
 
   useEffect(() => {
     // Generate unique session ID
@@ -176,6 +181,47 @@ const FileTransferPage = () => {
     // If showFiles is true, do nothing - only refresh button should work
   }
 
+  const handleFileClick = async (file) => {
+    try {
+      console.log('🎯 File clicked:', file);
+      console.log('📁 File name:', file.name);
+      console.log('📍 Local path:', file.localPath);
+      console.log('🌐 Electron API available:', !!window.electronAPI);
+      
+      // Check if it's a PDF file
+      const isPdf = file.name.toLowerCase().endsWith('.pdf');
+      console.log('📄 Is PDF:', isPdf);
+      
+      if (isPdf && window.electronAPI) {
+        // Open PDF preview window
+        setSelectedPDF(file);
+        setShowPDFPreview(true);
+      } else if (isPdf) {
+        // For web version, just open the file normally
+        console.log('🌐 Opening PDF in web browser');
+        if (file.url) {
+          window.open(file.url, '_blank');
+        } else {
+          alert('PDF file cannot be opened in web mode. Please use the Electron app for printing.');
+        }
+      } else {
+        // For non-PDF files, open normally
+        console.log('📂 Opening non-PDF file');
+        if (window.electronAPI && file.localPath) {
+          const result = await window.electronAPI.openLocalFile(file.localPath);
+          if (!result.success) {
+            alert(`Failed to open file: ${result.error}`);
+          }
+        } else if (file.url) {
+          window.open(file.url, '_blank');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error handling file click:', error);
+      alert('Error opening file: ' + error.message);
+    }
+  }
+
 
 
   return (
@@ -193,6 +239,24 @@ const FileTransferPage = () => {
             <div className="time-display">
               {formatTime(currentTime)}
             </div>
+            {window.electronAPI && (
+              <button 
+                onClick={() => setShowPrintQueue(true)}
+                className="print-queue-btn"
+                style={{
+                  marginLeft: '10px',
+                  padding: '5px 10px',
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Print Queue
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -263,16 +327,29 @@ const FileTransferPage = () => {
                   <div className="empty-state">No files found</div>
                 ) : (
                   <div className="files-list">
-                    {files.map((file, index) => (
-                      <div key={index} className="file-item">
-                        <div className="file-info">
-                          <h4>{file.name}</h4>
-                          <p>{formatFileSize(file.size)}</p>
-                          <p>{new Date(file.uploadTime).toLocaleString()}</p>
+                    {files.map((file, index) => {
+                      const isPdf = file.name.toLowerCase().endsWith('.pdf');
+                      return (
+                        <div 
+                          key={index} 
+                          className={`file-item ${isPdf ? 'pdf-file' : ''}`}
+                          onClick={() => handleFileClick(file)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="file-info">
+                            <h4>
+                              {file.name}
+                              {isPdf && <span className="pdf-badge">PDF</span>}
+                            </h4>
+                            <p>{formatFileSize(file.size)}</p>
+                            <p>{new Date(file.uploadTime).toLocaleString()}</p>
+                            {isPdf && (
+                              <p className="pdf-hint">Click to open print dialog</p>
+                            )}
+                          </div>
                         </div>
-
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -280,8 +357,31 @@ const FileTransferPage = () => {
           </div>
         </div>
       </div>
+      
+      {/* PDF Preview Window */}
+      {showPDFPreview && (
+        <PDFPreviewWindow
+          file={selectedPDF}
+          onClose={() => {
+            setShowPDFPreview(false);
+            setSelectedPDF(null);
+          }}
+          onAddToQueue={() => {
+            setShowPDFPreview(false);
+            setSelectedPDF(null);
+          }}
+        />
+      )}
+      
+      {/* Print Queue Window */}
+      <PrintQueue
+        isVisible={showPrintQueue}
+        onClose={() => setShowPrintQueue(false)}
+      />
     </div>
   )
 }
 
 export default FileTransferPage
+
+

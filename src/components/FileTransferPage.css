@@ -385,3 +385,35 @@
     transform: rotate(360deg);
   }
 }
+
+/* PDF File Styles */
+.file-transfer-page .file-item.pdf-file {
+  background: #fff3e0;
+  border-color: #ff9800;
+  position: relative;
+}
+
+.file-transfer-page .file-item.pdf-file:hover {
+  background: #ffe0b2;
+  border-color: #f57c00;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+}
+
+.file-transfer-page .pdf-badge {
+  background: #ff5722;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.file-transfer-page .pdf-hint {
+  color: #ff5722 !important;
+  font-weight: 500;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-style: italic;
+}
