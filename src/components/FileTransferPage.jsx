@@ -7,8 +7,8 @@ import "./FileTransferPage.css"
 import sessionIcon from "../assets/session.svg"
 import storageIcon from "../assets/storage.svg"
 import wifiIcon from "../assets/wifi.svg"
-import PDFPreviewWindow from "./PDFPreviewWindow"
-import PrintQueue from "./PrintQueue"
+// import PDFPreviewWindow from "./PDFPreviewWindow"
+// import PrintQueue from "./PrintQueue"
 
 const FileTransferPage = () => {
   const navigate = useNavigate()
@@ -22,7 +22,7 @@ const FileTransferPage = () => {
   const [showFiles, setShowFiles] = useState(false)
   const [selectedPDF, setSelectedPDF] = useState(null)
   const [showPDFPreview, setShowPDFPreview] = useState(false)
-  const [showPrintQueue, setShowPrintQueue] = useState(false)
+  // const [showPrintQueue, setShowPrintQueue] = useState(false)
 
   useEffect(() => {
     // Generate unique session ID
@@ -192,10 +192,12 @@ const FileTransferPage = () => {
       const isPdf = file.name.toLowerCase().endsWith('.pdf');
       console.log('📄 Is PDF:', isPdf);
       
-      if (isPdf && window.electronAPI) {
-        // Open PDF preview window
-        setSelectedPDF(file);
-        setShowPDFPreview(true);
+      if (window.electronAPI && file.localPath) {
+        // Always open with system default app in Electron (PDF or not)
+        const result = await window.electronAPI.openLocalFile(file.localPath);
+        if (!result.success) {
+          alert(`Failed to open file: ${result.error}`);
+        }
       } else if (isPdf) {
         // For web version, just open the file normally
         console.log('🌐 Opening PDF in web browser');
@@ -204,17 +206,8 @@ const FileTransferPage = () => {
         } else {
           alert('PDF file cannot be opened in web mode. Please use the Electron app for printing.');
         }
-      } else {
-        // For non-PDF files, open normally
-        console.log('📂 Opening non-PDF file');
-        if (window.electronAPI && file.localPath) {
-          const result = await window.electronAPI.openLocalFile(file.localPath);
-          if (!result.success) {
-            alert(`Failed to open file: ${result.error}`);
-          }
-        } else if (file.url) {
-          window.open(file.url, '_blank');
-        }
+      } else if (file.url) {
+        window.open(file.url, '_blank');
       }
     } catch (error) {
       console.error('❌ Error handling file click:', error);
@@ -241,7 +234,7 @@ const FileTransferPage = () => {
             </div>
             {window.electronAPI && (
               <button 
-                onClick={() => setShowPrintQueue(true)}
+                // onClick={() => setShowPrintQueue(true)}
                 className="print-queue-btn"
                 style={{
                   marginLeft: '10px',
@@ -358,26 +351,7 @@ const FileTransferPage = () => {
         </div>
       </div>
       
-      {/* PDF Preview Window */}
-      {showPDFPreview && (
-        <PDFPreviewWindow
-          file={selectedPDF}
-          onClose={() => {
-            setShowPDFPreview(false);
-            setSelectedPDF(null);
-          }}
-          onAddToQueue={() => {
-            setShowPDFPreview(false);
-            setSelectedPDF(null);
-          }}
-        />
-      )}
-      
-      {/* Print Queue Window */}
-      <PrintQueue
-        isVisible={showPrintQueue}
-        onClose={() => setShowPrintQueue(false)}
-      />
+      {/* PDF Preview and Print Queue removed as per user request */}
     </div>
   )
 }
