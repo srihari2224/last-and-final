@@ -7,8 +7,7 @@ import "./FileTransferPage.css"
 import sessionIcon from "../assets/session.svg"
 import storageIcon from "../assets/storage.svg"
 import wifiIcon from "../assets/wifi.svg"
-// import PDFPreviewWindow from "./PDFPreviewWindow"
-// import PrintQueue from "./PrintQueue"
+import IntegratedFilePage from "./IntegratedFilePage"
 
 const FileTransferPage = () => {
   const navigate = useNavigate()
@@ -16,13 +15,15 @@ const FileTransferPage = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
-  const [downloading, setDownloading] = useState({}) // Track download state for each file
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showFiles, setShowFiles] = useState(false)
-  const [selectedPDF, setSelectedPDF] = useState(null)
-  const [showPDFPreview, setShowPDFPreview] = useState(false)
-  // const [showPrintQueue, setShowPrintQueue] = useState(false)
+
+  // New state for file selection and integration
+  const [selectedFiles, setSelectedFiles] = useState([])
+  const [showIntegratedView, setShowIntegratedView] = useState(false)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [localFiles, setLocalFiles] = useState([]) // Store local session files
 
   useEffect(() => {
     // Generate unique session ID
@@ -55,8 +56,8 @@ const FileTransferPage = () => {
 
     // Online/Offline status
     const handleOnlineStatus = () => setIsOnline(navigator.onLine)
-    window.addEventListener('online', handleOnlineStatus)
-    window.addEventListener('offline', handleOnlineStatus)
+    window.addEventListener("online", handleOnlineStatus)
+    window.addEventListener("offline", handleOnlineStatus)
 
     // Real-time clock update
     const timeInterval = setInterval(() => {
@@ -66,13 +67,13 @@ const FileTransferPage = () => {
     // Polling for files
     const interval = setInterval(() => {
       fetchFilesFromBackend(newSessionId)
-    }, 3000000)
+    }, 30000)
 
     return () => {
       clearInterval(interval)
       clearInterval(timeInterval)
-      window.removeEventListener('online', handleOnlineStatus)
-      window.removeEventListener('offline', handleOnlineStatus)
+      window.removeEventListener("online", handleOnlineStatus)
+      window.removeEventListener("offline", handleOnlineStatus)
     }
   }, [])
 
@@ -87,26 +88,25 @@ const FileTransferPage = () => {
         try {
           const result = await window.electronAPI.getLocalFiles(sessionId)
           console.log("📁 Electron Local Files Response:", result)
-          
+
           if (result.files && result.files.length > 0) {
             setFiles(result.files)
+            setLocalFiles(result.files) // Store local files separately
             console.log(`✅ Found ${result.files.length} local files via Electron:`, result.files)
-            return // Found local files, no need to check S3
+            return
           } else {
             console.log("📭 No local files found for this session via Electron")
-            // Continue to download from S3
           }
         } catch (electronError) {
           console.error("❌ Electron API error:", electronError)
-          // Fallback to web API
         }
       }
 
       // Get S3 files and download them locally (for Electron) or show them (for web)
       console.log("🌐 Fetching S3 files")
-      
+
       const s3Response = await fetch(`https://upload-backend-api.vercel.app/api/list-files?session=${sessionId}`)
-      
+
       if (!s3Response.ok) {
         console.warn("⚠️ Could not fetch S3 files")
         return
@@ -124,12 +124,13 @@ const FileTransferPage = () => {
           try {
             const downloadResult = await window.electronAPI.downloadS3Files(sessionId, s3Data.files)
             console.log("📥 Download result:", downloadResult)
-            
+
             if (downloadResult.success) {
               // Get the newly downloaded local files
               const localResult = await window.electronAPI.getLocalFiles(sessionId)
               if (localResult.files && localResult.files.length > 0) {
                 setFiles(localResult.files)
+                setLocalFiles(localResult.files) // Store local files
                 console.log(`✅ Found ${localResult.files.length} local files after download:`, localResult.files)
                 return
               }
@@ -153,8 +154,6 @@ const FileTransferPage = () => {
     }
   }
 
-
-
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes"
     const k = 1024
@@ -164,12 +163,12 @@ const FileTransferPage = () => {
   }
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata',
+    return date.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
       hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     })
   }
 
@@ -178,44 +177,76 @@ const FileTransferPage = () => {
       setShowFiles(true)
       fetchFilesFromBackend(sessionId)
     }
-    // If showFiles is true, do nothing - only refresh button should work
   }
 
-  const handleFileClick = async (file) => {
-    try {
-      console.log('🎯 File clicked:', file);
-      console.log('📁 File name:', file.name);
-      console.log('📍 Local path:', file.localPath);
-      console.log('🌐 Electron API available:', !!window.electronAPI);
-      
-      // Check if it's a PDF file
-      const isPdf = file.name.toLowerCase().endsWith('.pdf');
-      console.log('📄 Is PDF:', isPdf);
-      
-      if (window.electronAPI && file.localPath) {
-        // Always open with system default app in Electron (PDF or not)
-        const result = await window.electronAPI.openLocalFile(file.localPath);
-        if (!result.success) {
-          alert(`Failed to open file: ${result.error}`);
-        }
-      } else if (isPdf) {
-        // For web version, just open the file normally
-        console.log('🌐 Opening PDF in web browser');
-        if (file.url) {
-          window.open(file.url, '_blank');
-        } else {
-          alert('PDF file cannot be opened in web mode. Please use the Electron app for printing.');
-        }
-      } else if (file.url) {
-        window.open(file.url, '_blank');
-      }
-    } catch (error) {
-      console.error('❌ Error handling file click:', error);
-      alert('Error opening file: ' + error.message);
+  // Handle file selection
+  const handleFileSelection = (file, isSelected) => {
+    if (isSelected) {
+      setSelectedFiles([...selectedFiles, file])
+    } else {
+      setSelectedFiles(selectedFiles.filter((f) => f.name !== file.name))
     }
   }
 
+  // Handle select all files
+  const handleSelectAll = () => {
+    setSelectedFiles([...files])
+  }
 
+  // Handle clear selection
+  const handleClearSelection = () => {
+    setSelectedFiles([])
+  }
+
+  // Handle next button click - FIXED TO USE LOCAL FILES
+  const handleNext = async () => {
+    if (selectedFiles.length > 0) {
+      console.log("🔄 Processing selected files for local session folder...")
+
+      // Get the corresponding local files for selected files
+      const localSelectedFiles = []
+
+      for (const selectedFile of selectedFiles) {
+        // Find the corresponding local file
+        const localFile = localFiles.find((lf) => lf.name === selectedFile.name)
+        if (localFile) {
+          console.log(`✅ Found local file for ${selectedFile.name}:`, localFile.localPath)
+          localSelectedFiles.push(localFile)
+        } else {
+          console.warn(`⚠️ No local file found for ${selectedFile.name}`)
+          // Fallback to original file if local not found
+          localSelectedFiles.push(selectedFile)
+        }
+      }
+
+      console.log("📁 Local selected files:", localSelectedFiles)
+
+      // Pass local files to integrated view
+      setSelectedFiles(localSelectedFiles)
+      setShowIntegratedView(true)
+    }
+  }
+
+  // Handle back to file selection
+  const handleBackToSelection = () => {
+    setShowIntegratedView(false)
+    setSelectedFiles([])
+  }
+
+  // Handle navigate to payment
+  const handleNavigateToPayment = (paymentData) => {
+    navigate("/payment", { state: paymentData })
+  }
+
+  // Handle file click - now for selection instead of opening
+  const handleFileClick = (file) => {
+    if (!selectionMode) {
+      setSelectionMode(true)
+    }
+
+    const isSelected = selectedFiles.some((f) => f.name === file.name)
+    handleFileSelection(file, !isSelected)
+  }
 
   return (
     <div className="file-transfer-page">
@@ -224,30 +255,27 @@ const FileTransferPage = () => {
           <div className="nav-title">File Transfer</div>
           <div className="nav-status">
             <div className="wifi-status">
-              <img src={wifiIcon} alt="WiFi" className="wifi-icon" />
-              <span className={`status-text ${isOnline ? 'online' : 'offline'}`}>
-                {isOnline ? 'Online' : 'Offline'}
+              <img src={wifiIcon || "/placeholder.svg"} alt="WiFi" className="wifi-icon" />
+              <span className={`status-text ${isOnline ? "online" : "offline"}`}>
+                {isOnline ? "Online" : "Offline"}
               </span>
             </div>
-            <div className="time-display">
-              {formatTime(currentTime)}
-            </div>
-            {window.electronAPI && (
-              <button 
-                // onClick={() => setShowPrintQueue(true)}
-                className="print-queue-btn"
+            <div className="time-display">{formatTime(currentTime)}</div>
+            {showIntegratedView && (
+              <button
+                onClick={handleBackToSelection}
                 style={{
-                  marginLeft: '10px',
-                  padding: '5px 10px',
-                  background: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
+                  marginLeft: "10px",
+                  padding: "5px 10px",
+                  background: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
                 }}
               >
-                Print Queue
+                Back to Files
               </button>
             )}
           </div>
@@ -259,27 +287,27 @@ const FileTransferPage = () => {
           <h2>Scan QR Code to Upload Files</h2>
           <div className="qr-container">
             {qrCodeUrl ? (
-              <img src={qrCodeUrl} alt="QR Code for file upload" className="qr-code" />
+              <img src={qrCodeUrl || "/placeholder.svg"} alt="QR Code for file upload" className="qr-code" />
             ) : (
               <div className="qr-placeholder">Generating QR Code...</div>
             )}
           </div>
           <div className="session-info">
-            <img src={sessionIcon} alt="Session" className="session-icon" />
+            <img src={sessionIcon || "/placeholder.svg"} alt="Session" className="session-icon" />
             <span className="session-id">{sessionId}</span>
-            <button 
+            <button
               onClick={() => {
-                window.location.reload();
+                window.location.reload()
               }}
-              style={{ 
-                marginLeft: '10px', 
-                padding: '2px 8px', 
-                fontSize: '10px',
-                background: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
+              style={{
+                marginLeft: "10px",
+                padding: "2px 8px",
+                fontSize: "10px",
+                background: "#28a745",
+                color: "white",
+                border: "none",
+                borderRadius: "3px",
+                cursor: "pointer",
               }}
             >
               Refresh
@@ -288,21 +316,21 @@ const FileTransferPage = () => {
         </div>
 
         <div className="storage-section">
-          <div className={`storage-box ${showFiles ? 'files-mode' : ''}`} onClick={handleStorageBoxClick}>
+          <div className={`storage-box ${showFiles ? "files-mode" : ""}`} onClick={handleStorageBoxClick}>
             {!showFiles ? (
               <div className="storage-box-blur">
-                <img src={storageIcon} alt="Storage" className="storage-icon" />
+                <img src={storageIcon || "/placeholder.svg"} alt="Storage" className="storage-icon" />
                 <span className="storage-text">Storage</span>
               </div>
             ) : (
               <div className="files-display" onClick={(e) => e.stopPropagation()}>
                 <div className="files-header">
                   <h3 className="files-title">Files</h3>
-                  <button 
-                    className="refresh-btn" 
+                  <button
+                    className="refresh-btn"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      fetchFilesFromBackend(sessionId);
+                      e.stopPropagation()
+                      fetchFilesFromBackend(sessionId)
                     }}
                     disabled={loading}
                   >
@@ -312,50 +340,98 @@ const FileTransferPage = () => {
                       <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
                     </svg>
                   </button>
-
                 </div>
+
                 {loading ? (
                   <div className="loading-state">Loading files...</div>
                 ) : files.length === 0 ? (
                   <div className="empty-state">No files found</div>
                 ) : (
-                  <div className="files-list">
-                    {files.map((file, index) => {
-                      const isPdf = file.name.toLowerCase().endsWith('.pdf');
-                      return (
-                        <div 
-                          key={index} 
-                          className={`file-item ${isPdf ? 'pdf-file' : ''}`}
-                          onClick={() => handleFileClick(file)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <div className="file-info">
-                            <h4>
-                              {file.name}
-                              {isPdf && <span className="pdf-badge">PDF</span>}
-                            </h4>
-                            <p>{formatFileSize(file.size)}</p>
-                            <p>{new Date(file.uploadTime).toLocaleString()}</p>
-                            {isPdf && (
-                              <p className="pdf-hint">Click to open print dialog</p>
+                  <>
+                    <div className="files-list">
+                      {files.map((file, index) => {
+                        const isPdf = file.name.toLowerCase().endsWith(".pdf")
+                        const isSelected = selectedFiles.some((f) => f.name === file.name)
+
+                        return (
+                          <div
+                            key={index}
+                            className={`file-item ${isPdf ? "pdf-file" : ""} ${selectionMode ? "selectable" : ""} ${isSelected ? "selected" : ""}`}
+                            onClick={() => handleFileClick(file)}
+                            style={{ cursor: "pointer" }}
+                          >
+                            {selectionMode && (
+                              <input
+                                type="checkbox"
+                                className="file-checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  e.stopPropagation()
+                                  handleFileSelection(file, e.target.checked)
+                                }}
+                              />
                             )}
+                            <div className="file-info">
+                              <h4>
+                                {file.name}
+                                {isPdf && <span className="pdf-badge">PDF</span>}
+                              </h4>
+                              <p>{formatFileSize(file.size)}</p>
+                              <p>{new Date(file.uploadTime).toLocaleString()}</p>
+                              {!selectionMode && (
+                                <p style={{ color: "#1976d2", fontSize: "0.75rem", fontStyle: "italic" }}>
+                                  Click to select files for editing
+                                </p>
+                              )}
+                              {file.localPath && (
+                                <p style={{ color: "#28a745", fontSize: "0.7rem", fontWeight: "500" }}>
+                                  📁 Local: {file.localPath}
+                                </p>
+                              )}
+                            </div>
                           </div>
+                        )
+                      })}
+                    </div>
+
+                    {selectionMode && (
+                      <div className="selection-controls">
+                        <div className="selected-count">
+                          {selectedFiles.length} of {files.length} files selected
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button className="clear-selection-btn" onClick={handleClearSelection}>
+                            Clear
+                          </button>
+                          <button className="clear-selection-btn" onClick={handleSelectAll}>
+                            Select All
+                          </button>
+                          <button className="next-btn" onClick={handleNext} disabled={selectedFiles.length === 0}>
+                            Next ({selectedFiles.length})
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
           </div>
         </div>
       </div>
-      
-      {/* PDF Preview and Print Queue removed as per user request */}
+
+      {/* Integrated FilePage Section - 75% width */}
+      {showIntegratedView && (
+        <div className="integrated-files-section">
+          <IntegratedFilePage
+            files={selectedFiles}
+            sessionId={sessionId}
+            onNavigateToPayment={handleNavigateToPayment}
+          />
+        </div>
+      )}
     </div>
   )
 }
 
 export default FileTransferPage
-
-

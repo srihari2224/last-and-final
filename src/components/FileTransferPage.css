@@ -82,7 +82,7 @@
 }
 
 .file-transfer-page .time-display {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1.1rem;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.1);
@@ -91,14 +91,14 @@
   order: 1;
 }
 
-/* Container - 1/4 width */
+/* Container - 25% width - NO GAPS */
 .file-transfer-page .container {
   width: 25%;
   max-width: 400px;
   margin: 0;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: none; /* Remove shadow to eliminate gaps */
   backdrop-filter: blur(10px);
   position: fixed;
   left: 0;
@@ -109,7 +109,20 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  
+  border-right: 1px solid #e0e0e0; /* Add border instead of shadow */
+}
+
+/* Integrated FilePage Section - 75% width - NO GAPS */
+.file-transfer-page .integrated-files-section {
+  position: fixed;
+  right: 0;
+  top: 80px;
+  width: 75%;
+  height: calc(100vh - 80px);
+  background: #ffffff; /* Changed to white */
+  color: #000000; /* Changed to black */
+  overflow: hidden;
+  left: 25%; /* Ensure perfect alignment */
 }
 
 /* QR Code Section - Top of container */
@@ -174,7 +187,7 @@
 }
 
 .file-transfer-page .session-id {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 /* Storage Section - Below QR code */
@@ -283,7 +296,7 @@
   height: 16px;
 }
 
-.file-transfer-page .loading-state, 
+.file-transfer-page .loading-state,
 .file-transfer-page .empty-state {
   display: flex;
   align-items: center;
@@ -416,4 +429,82 @@
   font-size: 0.75rem;
   margin-top: 4px;
   font-style: italic;
+}
+
+/* Selection mode styles */
+.file-transfer-page .file-item.selectable {
+  cursor: pointer;
+  position: relative;
+}
+
+.file-transfer-page .file-item.selectable:hover {
+  background: #e8f4fd;
+  border-color: #2196f3;
+}
+
+.file-transfer-page .file-item.selected {
+  background: #e3f2fd;
+  border-color: #1976d2;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.file-transfer-page .file-checkbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  accent-color: #1976d2;
+}
+
+.file-transfer-page .selection-controls {
+  padding: 1rem;
+  border-top: 2px solid #e0e0e0;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.file-transfer-page .selected-count {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.file-transfer-page .next-btn {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.file-transfer-page .next-btn:hover:not(:disabled) {
+  background: #1565c0;
+  transform: translateY(-1px);
+}
+
+.file-transfer-page .next-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.file-transfer-page .clear-selection-btn {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.file-transfer-page .clear-selection-btn:hover {
+  background: #f5f5f5;
 }
