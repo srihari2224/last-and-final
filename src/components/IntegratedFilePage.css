@@ -1,4 +1,4 @@
-/* Complete integrated FilePage styles - WHITE THEME - WIDER SIDEBARS */
+/* Complete integrated FilePage styles - WHITE THEME - WIDER SIDEBARS - NO QR CODE - FIXED GAPS */
 * {
   margin: 0;
   padding: 0;
@@ -34,29 +34,35 @@
   background-color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: #000000;
+  margin: 0;
+  padding: 0;
 }
 
-/* Main content layout for 75% width */
+/* Main content layout for 75% width - FIXED GAPS */
 .integrated-files-page .main-content {
   display: flex;
   height: 100%;
   width: 100%;
-  margin-top: 0;
+  margin: 0;
+  padding: 0;
 }
 
-/* Sidebar styles - Light Theme - MADE WIDER */
+/* Sidebar styles - Light Theme - MADE WIDER - FIXED GAPS */
 .integrated-files-page .sidebar {
-  width: 380px; /* Increased from 300px */
+  width: 380px;
   background-color: rgba(248, 249, 250, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .integrated-files-page .file-categories {
   padding: 20px;
+  margin: 0;
 }
 
 .integrated-files-page .category-header {
@@ -70,7 +76,7 @@
   font-weight: 620;
   color: #1976d2;
   letter-spacing: -0.3px;
-  margin-top: -15px;
+  margin: 0;
 }
 
 .integrated-files-page .category {
@@ -93,18 +99,21 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin: 0;
+  padding: 0;
 }
 
 .integrated-files-page .file-item {
   display: flex;
   align-items: center;
-  padding: 12px 14px; /* Increased padding */
+  padding: 12px 14px;
   border-radius: 10px;
   background-color: #ffffff;
   cursor: grab;
   transition: all 0.2s ease;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0;
 }
 
 .integrated-files-page .file-item:hover {
@@ -114,11 +123,11 @@
 }
 
 .integrated-files-page .file-preview {
-  width: 40px; /* Increased from 36px */
+  width: 40px;
   height: 40px;
   border-radius: 6px;
   overflow: hidden;
-  margin-right: 14px; /* Increased margin */
+  margin-right: 14px;
   background-color: #f8f9fa;
   display: flex;
   align-items: center;
@@ -133,12 +142,12 @@
 }
 
 .integrated-files-page .file-icon {
-  width: 40px; /* Increased from 36px */
+  width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 14px; /* Increased margin */
+  margin-right: 14px;
   color: #000000;
   background-color: #f8f9fa;
   border-radius: 6px;
@@ -150,9 +159,9 @@
 }
 
 .integrated-files-page .file-name {
-  font-size: 14px; /* Increased from 13px */
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 3px; /* Increased margin */
+  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -161,7 +170,7 @@
 }
 
 .integrated-files-page .file-size {
-  font-size: 12px; /* Increased from 11px */
+  font-size: 12px;
   color: #666666;
   opacity: 0.8;
 }
@@ -178,18 +187,21 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin: 0;
+  padding: 0;
 }
 
 .integrated-files-page .queue-item {
   display: flex;
   align-items: center;
-  padding: 12px 14px; /* Increased padding */
+  padding: 12px 14px;
   border-radius: 10px;
   background-color: #ffffff;
   position: relative;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  margin: 0;
 }
 
 .integrated-files-page .queue-item:hover {
@@ -199,14 +211,14 @@
 }
 
 .integrated-files-page .queue-item .file-details {
-  font-size: 11px; /* Increased from 10px */
+  font-size: 11px;
   color: #666666;
   margin-top: 2px;
   opacity: 0.8;
 }
 
 .integrated-files-page .cost-display {
-  font-size: 12px; /* Increased from 11px */
+  font-size: 12px;
   color: #28a745;
   font-weight: 600;
   margin-top: 2px;
@@ -214,10 +226,10 @@
 
 .integrated-files-page .remove-button {
   position: absolute;
-  right: 10px; /* Increased from 8px */
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  width: 26px; /* Increased from 24px */
+  width: 26px;
   height: 26px;
   border-radius: 50%;
   background-color: transparent;
@@ -240,7 +252,7 @@
   transform: translateY(-50%) scale(1.1);
 }
 
-/* Canvas area styles */
+/* Canvas area styles - FIXED GAPS */
 .integrated-files-page .canvas-area {
   flex: 1;
   display: flex;
@@ -248,6 +260,8 @@
   height: 100%;
   position: relative;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 .integrated-files-page .canvas-toolbar {
@@ -265,6 +279,7 @@
   padding: 0 16px;
   gap: 12px;
   z-index: 10;
+  margin: 0;
 }
 
 /* Button styles - Keep original colors */
@@ -518,7 +533,7 @@
   margin-left: 10px;
 }
 
-/* Canvas container */
+/* Canvas container - FIXED GAPS */
 .integrated-files-page .canvas-container {
   flex: 1;
   position: relative;
@@ -532,6 +547,7 @@
   background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
   background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
   padding-bottom: 80px;
+  margin: 0;
 }
 
 .integrated-files-page .canvas-background {
@@ -689,9 +705,9 @@
   transform: scale(1.1);
 }
 
-/* Right sidebar - MADE WIDER */
+/* Right sidebar - MADE WIDER - FIXED GAPS */
 .integrated-files-page .right-sidebar {
-  width: 380px; /* Increased from 300px */
+  width: 380px;
   background-color: rgba(248, 249, 250, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -699,42 +715,43 @@
   overflow-y: auto;
   height: 100%;
   padding: 20px;
-  margin-top: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
 }
 
 .integrated-files-page .cost-summary {
   background-color: #ffffff;
-  padding: 18px; /* Increased padding */
+  padding: 18px;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin: 0;
 }
 
 .integrated-files-page .cost-summary h4 {
-  font-size: 26px; /* Increased from 24px */
+  font-size: 26px;
   font-weight: 550;
   color: #28a745;
-  margin-bottom: 14px; /* Increased margin */
+  margin-bottom: 14px;
   letter-spacing: -0.2px;
 }
 
 .integrated-files-page .cost-details {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Increased gap */
-  margin-top: 14px; /* Increased margin */
+  gap: 12px;
+  margin-top: 14px;
 }
 
 .integrated-files-page .cost-section {
-  margin-bottom: 14px; /* Increased margin */
+  margin-bottom: 14px;
 }
 
 .integrated-files-page .cost-section h5 {
-  font-size: 17px; /* Increased from 16px */
+  font-size: 17px;
   font-weight: 350;
-  margin-bottom: 10px; /* Increased margin */
+  margin-bottom: 10px;
   color: #000000;
   letter-spacing: -0.1px;
 }
@@ -743,20 +760,20 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  font-size: 13px; /* Increased from 12px */
-  margin-bottom: 8px; /* Increased margin */
-  padding: 8px 0; /* Increased padding */
+  font-size: 13px;
+  margin-bottom: 8px;
+  padding: 8px 0;
   color: #000000;
 }
 
 .integrated-files-page .cost-item span:first-child {
   flex: 1;
-  margin-right: 12px; /* Increased margin */
+  margin-right: 12px;
   line-height: 1.4;
 }
 
 .integrated-files-page .cost-item span:last-child {
-  font-size: 17px; /* Increased from 16px */
+  font-size: 17px;
   font-weight: 600;
   color: #28a745;
   white-space: nowrap;
@@ -767,9 +784,9 @@
   justify-content: space-between;
   align-items: center;
   font-weight: 700;
-  font-size: 15px; /* Increased from 14px */
-  margin-top: 14px; /* Increased margin */
-  padding: 14px 18px; /* Increased padding */
+  font-size: 15px;
+  margin-top: 14px;
+  padding: 14px 18px;
   border-top: 2px solid rgba(0, 0, 0, 0.1);
   background-color: #28a745;
   color: #ffffff;
@@ -777,7 +794,7 @@
   letter-spacing: -0.3px;
 }
 
-/* Payment floating container */
+/* ENHANCED PAYMENT SECTION WITH MOBILE NUMBER */
 .integrated-files-page .payment-floating-container {
   margin-top: 20px;
 }
@@ -788,13 +805,14 @@
   -webkit-backdrop-filter: blur(20px);
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-  padding: 18px; /* Increased padding */
+  padding: 18px;
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 0;
 }
 
 .integrated-files-page .payment-summary {
-  margin-bottom: 14px; /* Increased margin */
+  margin-bottom: 14px;
 }
 
 .integrated-files-page .payment-total {
@@ -802,16 +820,57 @@
   justify-content: space-between;
   align-items: center;
   font-weight: 400;
-  font-size: 26px; /* Increased from 24px */
-  margin-bottom: 14px; /* Increased margin */
+  font-size: 26px;
+  margin-bottom: 14px;
   color: #000000;
   letter-spacing: -0.3px;
 }
 
+/* NEW: Mobile number input */
+.integrated-files-page .mobile-input-section {
+  margin-bottom: 14px;
+}
+
+.integrated-files-page .mobile-input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: 6px;
+}
+
+.integrated-files-page .mobile-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #000000;
+  box-sizing: border-box;
+}
+
+.integrated-files-page .mobile-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.integrated-files-page .mobile-input.error {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+.integrated-files-page .mobile-error {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .integrated-files-page .payment-button {
   position: relative;
-  padding: 12px 22px; /* Increased padding */
-  font-size: 15px; /* Increased from 14px */
+  padding: 12px 22px;
+  font-size: 15px;
   background: #000000;
   color: white;
   border: none;
@@ -841,206 +900,15 @@
   font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* Payment expansion styles */
-.integrated-files-page .payment-expanded {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 22px; /* Increased padding */
-  margin-top: 18px; /* Increased margin */
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  animation: expandPayment 0.3s ease-out;
+.integrated-files-page .payment-processing {
+  margin-top: 10px;
 }
 
-@keyframes expandPayment {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 600px; /* Increased max height */
-  }
-}
-
-.integrated-files-page .payment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 22px; /* Increased margin */
-  padding-bottom: 12px; /* Increased padding */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.integrated-files-page .payment-header h3 {
-  color: #000000;
-  font-size: 20px; /* Increased from 18px */
-  font-weight: 600;
-  margin: 0;
-}
-
-.integrated-files-page .close-payment {
-  background: none;
-  border: none;
-  font-size: 26px; /* Increased from 24px */
-  cursor: pointer;
+.integrated-files-page .payment-processing p {
+  text-align: center;
   color: #666;
-  padding: 0;
-  width: 32px; /* Increased from 30px */
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.integrated-files-page .close-payment:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: #000;
-}
-
-.integrated-files-page .payment-amount {
-  text-align: center;
-  margin-bottom: 22px; /* Increased margin */
-}
-
-.integrated-files-page .payment-amount h2 {
-  color: #28a745;
-  font-size: 36px; /* Increased from 32px */
-  font-weight: 700;
-  margin: 0;
-}
-
-.integrated-files-page .mobile-input {
-  margin-bottom: 22px; /* Increased margin */
-}
-
-.integrated-files-page .mobile-input label {
-  display: block;
-  margin-bottom: 10px; /* Increased margin */
-  color: #000000;
-  font-weight: 500;
-  font-size: 15px; /* Increased font size */
-}
-
-.integrated-files-page .mobile-input input {
-  width: 100%;
-  padding: 14px; /* Increased padding */
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  font-size: 17px; /* Increased from 16px */
-  background-color: #ffffff;
-  color: #000000;
-}
-
-.integrated-files-page .qr-container {
-  text-align: center;
-  margin-bottom: 22px; /* Increased margin */
-}
-
-.integrated-files-page .qr-container p {
-  font-size: 15px; /* Increased font size */
-  margin-bottom: 12px; /* Increased margin */
-  color: #000000;
-  font-weight: 500;
-}
-
-.integrated-files-page .qr-code-image {
-  max-width: 220px; /* Increased from 200px */
-  height: auto;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-}
-
-.integrated-files-page .payment-status {
-  text-align: center;
-  padding: 12px; /* Increased padding */
-  border-radius: 6px;
-  margin-top: 12px; /* Increased margin */
-  font-size: 14px; /* Increased font size */
-  font-weight: 500;
-}
-
-.integrated-files-page .payment-status.pending {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.integrated-files-page .payment-status.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.integrated-files-page .payment-status.failed {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-/* No pages message */
-.integrated-files-page .no-pages-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 40px;
-}
-
-.integrated-files-page .no-pages-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  background-color: #ffffff;
-  padding: 40px 32px;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.integrated-files-page .no-pages-content svg {
-  color: #000000;
-  opacity: 0.6;
-}
-
-.integrated-files-page .no-pages-content h3 {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
-  color: #000000;
-  letter-spacing: -0.3px;
-}
-
-.integrated-files-page .no-pages-content p {
-  color: #666666;
-  margin: 0 0 16px 0;
   font-size: 14px;
-  opacity: 0.8;
-}
-
-.integrated-files-page .toolbar-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: #3aa856;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.integrated-files-page .toolbar-button:hover {
-  background: #34974d;
-  transform: translateY(-1px);
+  font-style: italic;
 }
 
 /* Print modal styles - Light theme */
@@ -1287,13 +1155,74 @@
   color: #666666;
 }
 
+/* No pages message */
+.integrated-files-page .no-pages-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+}
+
+.integrated-files-page .no-pages-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background-color: #ffffff;
+  padding: 40px 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.integrated-files-page .no-pages-content svg {
+  color: #000000;
+  opacity: 0.6;
+}
+
+.integrated-files-page .no-pages-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #000000;
+  letter-spacing: -0.3px;
+}
+
+.integrated-files-page .no-pages-content p {
+  color: #666666;
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.integrated-files-page .toolbar-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #3aa856;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.integrated-files-page .toolbar-button:hover {
+  background: #34974d;
+  transform: translateY(-1px);
+}
+
 /* Responsive adjustments for integrated view */
 @media (max-width: 1400px) {
   .integrated-files-page .sidebar {
-    width: 320px; /* Adjusted for wider sidebar */
+    width: 320px;
   }
   .integrated-files-page .right-sidebar {
-    width: 320px; /* Adjusted for wider sidebar */
+    width: 320px;
   }
   .integrated-files-page .a4-canvas {
     width: 500px;
@@ -1303,10 +1232,10 @@
 
 @media (max-width: 1200px) {
   .integrated-files-page .sidebar {
-    width: 280px; /* Adjusted for wider sidebar */
+    width: 280px;
   }
   .integrated-files-page .right-sidebar {
-    width: 280px; /* Adjusted for wider sidebar */
+    width: 280px;
   }
   .integrated-files-page .a4-canvas {
     width: 450px;

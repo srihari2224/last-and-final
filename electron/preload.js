@@ -8,11 +8,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openLocalFile: (filePath) => ipcRenderer.invoke('open-local-file', filePath),
   openPdfPrintDialog: (filePath) => ipcRenderer.invoke('open-pdf-print-dialog', filePath),
   getLocalFiles: (sessionId) => ipcRenderer.invoke('get-local-files', sessionId),
+  getSessionFiles: (sessionId) => ipcRenderer.invoke('get-session-files', sessionId), // NEW: Added this line
   downloadS3Files: (sessionId, s3Files) => ipcRenderer.invoke('download-s3-files', sessionId, s3Files),
   
-            // PDF processing
-          getPdfPageCount: (filePath) => ipcRenderer.invoke('get-pdf-page-count', filePath),
-          openPdfViewer: (filePath) => ipcRenderer.invoke('open-pdf-viewer', filePath),
+  // PDF processing
+  getPdfPageCount: (filePath) => ipcRenderer.invoke('get-pdf-page-count', filePath),
+  openPdfViewer: (filePath) => ipcRenderer.invoke('open-pdf-viewer', filePath),
   
   // Print queue management
   addToPrintQueue: (printJob) => ipcRenderer.invoke('add-to-print-queue', printJob),
@@ -29,9 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Payment and printing
   processPaymentAndPrint: (paymentData) => ipcRenderer.invoke('process-payment-and-print', paymentData),
+  sendSmsInvoice: (invoiceData) => ipcRenderer.invoke('send-sms-invoice', invoiceData), // NEW: Added this line
   
   // System info
   getVersion: () => process.versions.electron,
   platform: () => process.platform
 });
-

@@ -23,12 +23,33 @@ const FileTransferPage = () => {
   const [selectedFiles, setSelectedFiles] = useState([])
   const [showIntegratedView, setShowIntegratedView] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
-  const [localFiles, setLocalFiles] = useState([]) // Store local session files
+
+  // FIXED: Generate unique session ID with format {Adjective}{Animal}{Number}
+  const generateUniqueSessionId = () => {
+    const adjectives = [
+      'Fuzzy', 'Happy', 'Sneaky', 'Lazy', 'Tiny', 'Brave', 'Swift', 'Clever', 'Gentle', 'Mighty',
+      'Bright', 'Calm', 'Eager', 'Fierce', 'Jolly', 'Kind', 'Lively', 'Noble', 'Quick', 'Wise',
+      'Bold', 'Cool', 'Daring', 'Epic', 'Fast', 'Great', 'Huge', 'Icy', 'Jumbo', 'Keen'
+    ];
+    
+    const animals = [
+      'Cat', 'Llama', 'Fox', 'Koala', 'Hawk', 'Bear', 'Wolf', 'Tiger', 'Lion', 'Eagle',
+      'Panda', 'Shark', 'Whale', 'Deer', 'Rabbit', 'Horse', 'Zebra', 'Giraffe', 'Elephant', 'Rhino',
+      'Monkey', 'Parrot', 'Owl', 'Falcon', 'Raven', 'Swan', 'Duck', 'Goose', 'Crane', 'Heron'
+    ];
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+    const randomNumber = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    
+    return `${randomAdjective}${randomAnimal}${randomNumber}`;
+  };
 
   useEffect(() => {
-    // Generate unique session ID
-    const newSessionId = Math.random().toString(36).substring(2, 15)
-    setSessionId(newSessionId)
+    // Generate unique session ID with new format
+    const newSessionId = generateUniqueSessionId();
+    setSessionId(newSessionId);
+    console.log('🆔 Generated session ID:', newSessionId);
 
     // Use the S3 domain for scan.html
     const qrUrl = `http://nit-calicut.s3-website.ap-south-1.amazonaws.com/scan.html?session=${newSessionId}`
@@ -51,9 +72,6 @@ const FileTransferPage = () => {
         console.error("Error generating QR code:", err)
       })
 
-    // Initial file load
-    fetchFilesFromBackend(newSessionId)
-
     // Online/Offline status
     const handleOnlineStatus = () => setIsOnline(navigator.onLine)
     window.addEventListener("online", handleOnlineStatus)
@@ -64,93 +82,103 @@ const FileTransferPage = () => {
       setCurrentTime(new Date())
     }, 1000)
 
-    // Polling for files
-    const interval = setInterval(() => {
-      fetchFilesFromBackend(newSessionId)
-    }, 30000)
-
     return () => {
-      clearInterval(interval)
       clearInterval(timeInterval)
       window.removeEventListener("online", handleOnlineStatus)
       window.removeEventListener("offline", handleOnlineStatus)
     }
   }, [])
 
-  const fetchFilesFromBackend = async (sessionId) => {
+  // COMPLETELY NEW: Fetch files directly from session folder - FIXED
+  const fetchSessionFiles = async (sessionId) => {
     try {
       setLoading(true)
-      console.log(`🔍 Fetching files for session: ${sessionId}`)
+      console.log(`🔍 Fetching files directly from session folder: ${sessionId}`)
 
-      // Check if we're in Electron and use local files
+      // Check if we're in Electron and get files from session folder
       if (window.electronAPI) {
-        console.log("🔌 Using Electron API for local files")
+        console.log("🔌 Using Electron API to get session files")
         try {
-          const result = await window.electronAPI.getLocalFiles(sessionId)
-          console.log("📁 Electron Local Files Response:", result)
+          const result = await window.electronAPI.getSessionFiles(sessionId)
+          console.log("📁 Session Files Response:", result)
 
-          if (result.files && result.files.length > 0) {
+          // If session folder doesn't exist, try to download from S3 first
+          if (result.exists === false) {
+            console.log("📭 Session folder does not exist yet - downloading from S3")
+            await downloadS3FilesToSession(sessionId)
+            
+            // After downloading, try again to get the files
+            const retryResult = await window.electronAPI.getSessionFiles(sessionId)
+            console.log("📁 Retry Session Files Response:", retryResult)
+            
+            if (retryResult.success && retryResult.files && retryResult.files.length > 0) {
+              setFiles(retryResult.files)
+              console.log(`✅ Found ${retryResult.files.length} files after download:`, retryResult.files)
+              return
+            }
+          } else if (result.success && result.files && result.files.length > 0) {
             setFiles(result.files)
-            setLocalFiles(result.files) // Store local files separately
-            console.log(`✅ Found ${result.files.length} local files via Electron:`, result.files)
+            console.log(`✅ Found ${result.files.length} files in session folder:`, result.files)
             return
           } else {
-            console.log("📭 No local files found for this session via Electron")
+            console.log("📭 No files found in session folder, trying S3 download...")
+            await downloadS3FilesToSession(sessionId)
+            
+            // Final retry after download
+            const finalResult = await window.electronAPI.getSessionFiles(sessionId)
+            if (finalResult.success && finalResult.files && finalResult.files.length > 0) {
+              setFiles(finalResult.files)
+              console.log(`✅ Found ${finalResult.files.length} files after S3 download:`, finalResult.files)
+              return
+            }
           }
         } catch (electronError) {
           console.error("❌ Electron API error:", electronError)
         }
       }
 
-      // Get S3 files and download them locally (for Electron) or show them (for web)
-      console.log("🌐 Fetching S3 files")
+      // If still no files, show empty state
+      console.log("📭 No files available for this session")
+      setFiles([])
+      
+    } catch (error) {
+      console.error("❌ Error fetching session files:", error)
+      setFiles([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Download S3 files to session folder - ENHANCED
+  const downloadS3FilesToSession = async (sessionId) => {
+    try {
+      console.log("🌐 Checking for S3 files to download")
 
       const s3Response = await fetch(`https://upload-backend-api.vercel.app/api/list-files?session=${sessionId}`)
 
       if (!s3Response.ok) {
         console.warn("⚠️ Could not fetch S3 files")
-        return
+        return false
       }
 
       const s3Data = await s3Response.json()
       console.log("📁 S3 Files Response:", s3Data)
 
-      if (s3Data.files && s3Data.files.length > 0) {
-        console.log(`📋 Found ${s3Data.files.length} files in S3:`, s3Data.files)
+      if (s3Data.files && s3Data.files.length > 0 && window.electronAPI) {
+        console.log(`🔌 Downloading ${s3Data.files.length} S3 files to session folder`)
+        
+        const downloadResult = await window.electronAPI.downloadS3Files(sessionId, s3Data.files)
+        console.log("📥 Download result:", downloadResult)
 
-        // If in Electron, download files to local storage
-        if (window.electronAPI) {
-          console.log("🔌 Downloading S3 files to local storage via Electron")
-          try {
-            const downloadResult = await window.electronAPI.downloadS3Files(sessionId, s3Data.files)
-            console.log("📥 Download result:", downloadResult)
-
-            if (downloadResult.success) {
-              // Get the newly downloaded local files
-              const localResult = await window.electronAPI.getLocalFiles(sessionId)
-              if (localResult.files && localResult.files.length > 0) {
-                setFiles(localResult.files)
-                setLocalFiles(localResult.files) // Store local files
-                console.log(`✅ Found ${localResult.files.length} local files after download:`, localResult.files)
-                return
-              }
-            }
-          } catch (downloadError) {
-            console.error("❌ Download error:", downloadError)
-          }
+        if (downloadResult.success) {
+          console.log(`✅ Successfully downloaded ${downloadResult.downloadedFiles.length} files`)
+          return true
         }
-
-        // For web or if Electron download failed, show S3 files directly
-        console.log("🌐 Showing S3 files directly (web mode)")
-        setFiles(s3Data.files)
-      } else {
-        setFiles([])
-        console.log("📭 No files found in S3 for this session")
       }
+      return false
     } catch (error) {
-      console.error("❌ Error fetching files:", error)
-    } finally {
-      setLoading(false)
+      console.error("❌ Error downloading S3 files:", error)
+      return false
     }
   }
 
@@ -175,7 +203,7 @@ const FileTransferPage = () => {
   const handleStorageBoxClick = () => {
     if (!showFiles) {
       setShowFiles(true)
-      fetchFilesFromBackend(sessionId)
+      fetchSessionFiles(sessionId)
     }
   }
 
@@ -198,31 +226,11 @@ const FileTransferPage = () => {
     setSelectedFiles([])
   }
 
-  // Handle next button click - FIXED TO USE LOCAL FILES
+  // Handle next button click
   const handleNext = async () => {
     if (selectedFiles.length > 0) {
-      console.log("🔄 Processing selected files for local session folder...")
-
-      // Get the corresponding local files for selected files
-      const localSelectedFiles = []
-
-      for (const selectedFile of selectedFiles) {
-        // Find the corresponding local file
-        const localFile = localFiles.find((lf) => lf.name === selectedFile.name)
-        if (localFile) {
-          console.log(`✅ Found local file for ${selectedFile.name}:`, localFile.localPath)
-          localSelectedFiles.push(localFile)
-        } else {
-          console.warn(`⚠️ No local file found for ${selectedFile.name}`)
-          // Fallback to original file if local not found
-          localSelectedFiles.push(selectedFile)
-        }
-      }
-
-      console.log("📁 Local selected files:", localSelectedFiles)
-
-      // Pass local files to integrated view
-      setSelectedFiles(localSelectedFiles)
+      console.log("🔄 Processing selected files for integrated view...")
+      console.log("📁 Selected files:", selectedFiles)
       setShowIntegratedView(true)
     }
   }
@@ -330,7 +338,7 @@ const FileTransferPage = () => {
                     className="refresh-btn"
                     onClick={(e) => {
                       e.stopPropagation()
-                      fetchFilesFromBackend(sessionId)
+                      fetchSessionFiles(sessionId)
                     }}
                     disabled={loading}
                   >
@@ -345,12 +353,12 @@ const FileTransferPage = () => {
                 {loading ? (
                   <div className="loading-state">Loading files...</div>
                 ) : files.length === 0 ? (
-                  <div className="empty-state">No files found</div>
+                  <div className="empty-state">No files found in session folder</div>
                 ) : (
                   <>
                     <div className="files-list">
                       {files.map((file, index) => {
-                        const isPdf = file.name.toLowerCase().endsWith(".pdf")
+                        const isPdf = file.type === 'pdf' || file.name.toLowerCase().endsWith(".pdf")
                         const isSelected = selectedFiles.some((f) => f.name === file.name)
 
                         return (
@@ -375,6 +383,7 @@ const FileTransferPage = () => {
                               <h4>
                                 {file.name}
                                 {isPdf && <span className="pdf-badge">PDF</span>}
+                                {file.type === 'image' && <span className="pdf-badge" style={{background: '#2196f3'}}>IMG</span>}
                               </h4>
                               <p>{formatFileSize(file.size)}</p>
                               <p>{new Date(file.uploadTime).toLocaleString()}</p>
@@ -383,11 +392,9 @@ const FileTransferPage = () => {
                                   Click to select files for editing
                                 </p>
                               )}
-                              {file.localPath && (
-                                <p style={{ color: "#28a745", fontSize: "0.7rem", fontWeight: "500" }}>
-                                  📁 Local: {file.localPath}
-                                </p>
-                              )}
+                              <p style={{ color: "#28a745", fontSize: "0.7rem", fontWeight: "500" }}>
+                                📁 Local: {file.localPath}
+                              </p>
                             </div>
                           </div>
                         )
@@ -420,7 +427,7 @@ const FileTransferPage = () => {
         </div>
       </div>
 
-      {/* Integrated FilePage Section - 75% width */}
+      {/* Integrated FilePage Section - 75% width - FIXED GAPS */}
       {showIntegratedView && (
         <div className="integrated-files-section">
           <IntegratedFilePage

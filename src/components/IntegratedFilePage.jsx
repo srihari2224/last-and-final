@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, Trash, ImageIcon, FileText, X } from "lucide-react"
+import { Plus, Trash, ImageIcon, FileText, X } from 'lucide-react'
 import "./IntegratedFilePage.css"
 
 function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
@@ -40,21 +40,19 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   // Print queue state
   const [printQueue, setPrintQueue] = useState([])
 
-  // Payment state
-  const [showPaymentExpanded, setShowPaymentExpanded] = useState(false)
-  const [paymentStatus, setPaymentStatus] = useState("pending") // pending, success, failed
+  // Payment state - ENHANCED WITH MOBILE NUMBER
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [mobileNumber, setMobileNumber] = useState("")
-  const [qrCodeUrl, setQrCodeUrl] = useState("")
-  const [razorpayOrderId, setRazorpayOrderId] = useState("")
+  const [mobileError, setMobileError] = useState("")
 
   // Group files by type (only images and PDFs) - USING LOCAL FILES
   const fileCategories = {
     images: files.filter((file) => {
-      if (file.type) return file.type.startsWith("image/")
+      if (file.type) return file.type === 'image' || file.type.startsWith("image/")
       return file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)
     }),
     pdfs: files.filter((file) => {
-      if (file.type) return file.type === "application/pdf"
+      if (file.type) return file.type === 'pdf' || file.type === "application/pdf"
       return file.name.toLowerCase().endsWith(".pdf")
     }),
   }
@@ -558,75 +556,258 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
     return totalCost
   }
 
-  // Handle payment button click - FIXED RAZORPAY INTEGRATION
+  // Validate mobile number
+  const validateMobileNumber = (number) => {
+    const mobileRegex = /^[6-9]\d{9}$/
+    return mobileRegex.test(number)
+  }
+
+  // Handle mobile number change
+  const handleMobileNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10)
+    setMobileNumber(value)
+    
+    if (value && !validateMobileNumber(value)) {
+      setMobileError("Please enter a valid 10-digit mobile number")
+    } else {
+      setMobileError("")
+    }
+  }
+
+  // Handle payment button click - ENHANCED WITH MOBILE NUMBER AND SMS INVOICE
   const handlePaymentClick = async () => {
     const totalAmount = calculateTotalCost()
     if (totalAmount === 0) return
 
-    console.log("💳 Starting payment process for ₹", totalAmount)
-    setShowPaymentExpanded(true)
-    setPaymentStatus("pending")
+    // Validate mobile number
+    if (!mobileNumber) {
+      setMobileError("Mobile number is required")
+      return
+    }
 
-    // Create Razorpay order
+    if (!validateMobileNumber(mobileNumber)) {
+      setMobileError("Please enter a valid 10-digit mobile number")
+      return
+    }
+
+    console.log("💳 Starting direct Razorpay payment for ₹", totalAmount)
+    console.log("📱 Mobile number:", mobileNumber)
+    setPaymentProcessing(true)
+
     try {
-      console.log("🔄 Creating Razorpay order...")
+      // Load Razorpay script
+      console.log("📜 Loading Razorpay script...")
+      const loadRazorpayScript = () => {
+        return new Promise((resolve, reject) => {
+          if (window.Razorpay) {
+            resolve(window.Razorpay)
+            return
+          }
 
-      // Since we're in Electron, we need to make the API call to our backend
-      const response = await fetch("https://upload-backend-api.vercel.app/api/create-razorpay-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+          const script = document.createElement("script")
+          script.src = "https://checkout.razorpay.com/v1/checkout.js"
+          script.async = true
+          
+          script.onload = () => {
+            if (window.Razorpay) {
+              console.log("✅ Razorpay script loaded successfully")
+              resolve(window.Razorpay)
+            } else {
+              reject(new Error("Razorpay object not found after script load"))
+            }
+          }
+          
+          script.onerror = () => {
+            reject(new Error("Failed to load Razorpay script. Please check your internet connection."))
+          }
+
+          // Set timeout for script loading
+          setTimeout(() => {
+            if (!window.Razorpay) {
+              reject(new Error("Razorpay script loading timeout"))
+            }
+          }, 10000)
+
+          document.head.appendChild(script)
+        })
+      }
+
+      const Razorpay = await loadRazorpayScript()
+
+      // DIRECT PAYMENT WITHOUT ORDER - ENHANCED WITH MOBILE
+      const options = {
+        key: "rzp_live_jm6OsGGo5hOcUQ", // Your Razorpay key
+        amount: totalAmount * 100, // Amount in paise
+        currency: "INR",
+        name: "Print Shop",
+        description: `Print Job - Session ${sessionId}`,
+        image: "/placeholder.svg?height=100&width=100&text=Print", // Optional logo
+        handler: function (response) {
+          console.log("✅ Payment successful:", response)
+          console.log("Payment ID:", response.razorpay_payment_id)
+          
+          // Process the print job and send SMS invoice
+          processPrintJobWithInvoice(response)
         },
-        body: JSON.stringify({
-          amount: totalAmount * 100, // Razorpay expects amount in paise
-          currency: "INR",
-        }),
+        prefill: {
+          name: "Customer",
+          email: "customer@example.com",
+          contact: mobileNumber, // Use the entered mobile number
+        },
+        notes: {
+          sessionId: sessionId,
+          canvasPages: pages.length,
+          pdfJobs: printQueue.length,
+          timestamp: new Date().toISOString(),
+          mobileNumber: mobileNumber,
+        },
+        theme: {
+          color: "#000000",
+        },
+        modal: {
+          ondismiss: function () {
+            console.log("❌ Payment cancelled by user")
+            setPaymentProcessing(false)
+          },
+          onhidden: function () {
+            console.log("🔒 Payment modal closed")
+            setPaymentProcessing(false)
+          },
+        },
+        retry: {
+          enabled: true,
+          max_count: 3,
+        },
+        timeout: 300, // 5 minutes timeout
+        remember_customer: false,
+      }
+
+      console.log("🚀 Opening Razorpay checkout with options:", options)
+      const rzp = new Razorpay(options)
+      
+      // Handle payment failure
+      rzp.on('payment.failed', function (response) {
+        console.error("❌ Payment failed:", response.error)
+        alert(`Payment failed: ${response.error.description || 'Unknown error occurred'}`)
+        setPaymentProcessing(false)
       })
 
-      const orderData = await response.json()
-      console.log("📋 Razorpay order response:", orderData)
+      // Open the payment modal
+      rzp.open()
 
-      if (orderData.success) {
-        setRazorpayOrderId(orderData.orderId)
-
-        // Generate UPI QR code using Razorpay's UPI format
-        const upiString = `upi://pay?pa=success@razorpay&pn=PrintShop&am=${totalAmount}&cu=INR&tn=Print Payment&tr=${orderData.orderId}`
-
-        // Generate QR code using QR server
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiString)}`
-        setQrCodeUrl(qrUrl)
-
-        console.log("✅ Payment QR code generated:", qrUrl)
-
-        // Simulate payment verification after 10 seconds (for demo)
-        setTimeout(() => {
-          console.log("✅ Payment verification (demo)")
-          setPaymentStatus("success")
-
-          // Auto-close after success
-          setTimeout(() => {
-            closePaymentExpansion()
-            // Here you would trigger the actual printing process
-            console.log("🖨️ Starting print process...")
-          }, 2000)
-        }, 10000)
-      } else {
-        console.error("❌ Failed to create Razorpay order:", orderData.error)
-        setPaymentStatus("failed")
-      }
     } catch (error) {
-      console.error("❌ Error creating payment:", error)
-      setPaymentStatus("failed")
+      console.error("❌ Error in payment initialization:", error)
+      
+      let errorMessage = "Payment initialization failed. Please try again."
+      
+      if (error.message.includes("Razorpay script")) {
+        errorMessage = "Unable to load payment gateway. Please check your internet connection and try again."
+      } else if (error.message.includes("timeout")) {
+        errorMessage = "Payment gateway is taking too long to load. Please try again."
+      }
+      
+      alert(errorMessage)
+      setPaymentProcessing(false)
     }
   }
 
-  // Close payment expansion
-  const closePaymentExpansion = () => {
-    setShowPaymentExpanded(false)
-    setPaymentStatus("pending")
-    setMobileNumber("")
-    setQrCodeUrl("")
-    setRazorpayOrderId("")
+  // Process print job after successful payment and send SMS invoice
+  const processPrintJobWithInvoice = async (paymentResponse) => {
+    console.log("🖨️ Processing print job after payment:", paymentResponse)
+    
+    try {
+      // Show success message immediately
+      alert("Payment successful! Your print job will be processed.")
+      
+      // Prepare invoice data
+      const invoiceItems = []
+      
+      // Add canvas pages to invoice
+      pages.forEach((page) => {
+        invoiceItems.push({
+          type: 'canvas',
+          description: `Canvas Page ${page.id} (${page.colorMode === 'color' ? 'Color' : 'B&W'})`,
+          cost: page.colorMode === 'color' ? 10 : 2
+        })
+      })
+      
+      // Add PDF jobs to invoice
+      printQueue.forEach((pdfJob) => {
+        invoiceItems.push({
+          type: 'pdf',
+          description: `${pdfJob.fileName} (${pdfJob.printSettings.copies} copies)`,
+          cost: pdfJob.cost
+        })
+      })
+
+      // Send SMS invoice if in Electron
+      if (window.electronAPI) {
+        try {
+          const invoiceData = {
+            phoneNumber: mobileNumber,
+            amount: calculateTotalCost(),
+            paymentId: paymentResponse.razorpay_payment_id,
+            sessionId: sessionId,
+            items: invoiceItems
+          }
+          
+          const smsResult = await window.electronAPI.sendSmsInvoice(invoiceData)
+          
+          if (smsResult.success) {
+            console.log("✅ SMS invoice sent successfully")
+          } else {
+            console.warn("⚠️ SMS invoice failed:", smsResult.error)
+          }
+        } catch (smsError) {
+          console.error("❌ Error sending SMS invoice:", smsError)
+        }
+      }
+      
+      // Process canvas pages
+      for (const page of pages) {
+        console.log(`🖨️ Processing canvas page ${page.id} (${page.colorMode})`)
+        // Here you would send the page data to your printing service
+      }
+
+      // Process PDF queue
+      for (const pdfJob of printQueue) {
+        console.log(`🖨️ Processing PDF: ${pdfJob.fileName}`)
+        
+        // If using Electron, you can use the print APIs
+        if (window.electronAPI && pdfJob.file.localPath) {
+          try {
+            const printResult = await window.electronAPI.addToPrintQueue({
+              id: pdfJob.id,
+              fileName: pdfJob.fileName,
+              filePath: pdfJob.file.localPath,
+              printOptions: pdfJob.printSettings,
+              cost: pdfJob.cost,
+              paymentId: paymentResponse.razorpay_payment_id,
+            })
+            
+            if (printResult.success) {
+              console.log("✅ PDF added to print queue:", pdfJob.fileName)
+            }
+          } catch (error) {
+            console.error("❌ Error adding PDF to print queue:", error)
+          }
+        }
+      }
+
+      // Clear the queues after processing
+      setPages([{ id: 1, items: [], colorMode: "color" }])
+      setPrintQueue([])
+      setActivePage(1)
+      setMobileNumber("")
+      
+      console.log("✅ Print job processing completed")
+      
+    } catch (error) {
+      console.error("❌ Error processing print job:", error)
+      alert("Payment successful, but there was an issue processing your print job. Please contact support.")
+    } finally {
+      setPaymentProcessing(false)
+    }
   }
 
   // Get current page
@@ -983,7 +1164,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
             </div>
           </div>
 
-          {/* Payment button and expansion */}
+          {/* ENHANCED PAYMENT SECTION WITH MOBILE NUMBER */}
           <div className="payment-floating-container">
             <div className="payment-box">
               <div className="payment-summary">
@@ -992,59 +1173,41 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                   <span>₹{calculateTotalCost()}</span>
                 </div>
               </div>
+              
+              {/* Mobile Number Input */}
+              <div className="mobile-input-section">
+                <label className="mobile-input-label" htmlFor="mobile-number">
+                  Mobile Number *
+                </label>
+                <input
+                  id="mobile-number"
+                  type="tel"
+                  className={`mobile-input ${mobileError ? 'error' : ''}`}
+                  placeholder="Enter 10-digit mobile number"
+                  value={mobileNumber}
+                  onChange={handleMobileNumberChange}
+                  maxLength={10}
+                />
+                {mobileError && (
+                  <div className="mobile-error">{mobileError}</div>
+                )}
+              </div>
+              
               <button
                 className="payment-button"
                 onClick={handlePaymentClick}
-                disabled={calculateTotalCost() === 0 || showPaymentExpanded}
+                disabled={calculateTotalCost() === 0 || paymentProcessing || !mobileNumber}
               >
-                <span className="btn-text">{showPaymentExpanded ? "Processing..." : "Pay & Print Now"}</span>
+                <span className="btn-text">
+                  {paymentProcessing ? "Loading Payment..." : "Pay Now"}
+                </span>
               </button>
-
-              {/* Payment Expansion */}
-              {showPaymentExpanded && (
-                <div className="payment-expanded">
-                  <div className="payment-header">
-                    <h3>Complete Payment</h3>
-                    <button className="close-payment" onClick={closePaymentExpansion}>
-                      ×
-                    </button>
-                  </div>
-
-                  <div className="payment-amount">
-                    <h2>₹{calculateTotalCost()}</h2>
-                  </div>
-
-                  <div className="mobile-input">
-                    <label>Mobile Number (Optional)</label>
-                    <input
-                      type="tel"
-                      value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value)}
-                      placeholder="Enter mobile number"
-                      maxLength="10"
-                    />
-                  </div>
-
-                  {qrCodeUrl && (
-                    <div className="qr-container">
-                      <p>Scan QR code to pay via UPI</p>
-                      <img
-                        src={qrCodeUrl || "/placeholder.svg"}
-                        alt="UPI QR Code"
-                        className="qr-code-image"
-                        onError={(e) => {
-                          console.error("❌ Failed to load QR code")
-                          e.target.style.display = "none"
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  <div className={`payment-status ${paymentStatus}`}>
-                    {paymentStatus === "pending" && "Waiting for payment..."}
-                    {paymentStatus === "success" && "Payment successful! Processing print job..."}
-                    {paymentStatus === "failed" && "Payment failed. Please try again."}
-                  </div>
+              
+              {paymentProcessing && (
+                <div className="payment-processing">
+                  <p style={{ textAlign: "center", marginTop: "10px", color: "#666", fontSize: "14px" }}>
+                    Loading Razorpay payment gateway...
+                  </p>
                 </div>
               )}
             </div>

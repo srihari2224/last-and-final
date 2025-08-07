@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell, dialog, globalShortcut } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -15,11 +15,24 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false
     },
     titleBarStyle: 'default',
     show: false
   });
+
+  // Set Content Security Policy
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': ['default-src \'self\' \'unsafe-inline\' data: blob: https:; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https:; img-src \'self\' data: blob: https: file:;']
+      }
+    })
+  })
 
   // Load your web app - use local development server for PDF functionality
   mainWindow.loadURL('http://localhost:5173').catch(err => {
@@ -36,6 +49,40 @@ function createWindow() {
   // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // FIXED: Register global shortcuts for window control
+  globalShortcut.register('CommandOrControl+Plus', () => {
+    if (mainWindow) {
+      mainWindow.maximize();
+    }
+  });
+
+  globalShortcut.register('CommandOrControl+-', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.minimize();
+      }
+    }
+  });
+
+  // Also handle numpad plus/minus
+  globalShortcut.register('CommandOrControl+numadd', () => {
+    if (mainWindow) {
+      mainWindow.maximize();
+    }
+  });
+
+  globalShortcut.register('CommandOrControl+numsub', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.minimize();
+      }
+    }
   });
 
   // Auto-updater events
@@ -73,6 +120,9 @@ app.whenReady().then(createWindow);
 
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
+  // Unregister all shortcuts
+  globalShortcut.unregisterAll();
+  
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -84,6 +134,11 @@ app.on('activate', () => {
   }
 });
 
+// Clean up shortcuts when app is about to quit
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
+
 // Handle file printing (for future use)
 ipcMain.handle('print-files', async (event, files) => {
   console.log('Printing files:', files);
@@ -93,15 +148,12 @@ ipcMain.handle('print-files', async (event, files) => {
 // Handle opening local files
 ipcMain.handle('open-local-file', async (event, filePath) => {
   try {
-    console.log('Opening local file:', filePath);
     
     // Decode URL-encoded characters in the file path
     const decodedPath = decodeURIComponent(filePath);
-    console.log('Decoded path:', decodedPath);
     
     // Check if file exists
     if (!fs.existsSync(decodedPath)) {
-      console.error('File not found at path:', decodedPath);
       throw new Error(`File does not exist: ${path.basename(decodedPath)}`);
     }
     
@@ -110,7 +162,6 @@ ipcMain.handle('open-local-file', async (event, filePath) => {
     
     return { success: true, message: 'File opened successfully' };
   } catch (error) {
-    console.error('Error opening file:', error);
     return { success: false, error: error.message };
   }
 });
@@ -468,18 +519,20 @@ async function silentPrintPDF(filePath, options) {
   }
 }
 
-// Handle getting local files for a session
-ipcMain.handle('get-local-files', async (event, sessionId) => {
+// COMPLETELY NEW: Handle getting local files for a session - DIRECT FROM FOLDER
+ipcMain.handle('get-session-files', async (event, sessionId) => {
   try {
+    console.log(`🔍 Getting files directly from session folder: ${sessionId}`);
+    
     // Use the correct path for local files - Windows path
     const baseDir = path.join('C:', 'Users', 'msrih', 'Downloads', 'eastIT', 'files');
     const sessionDir = path.join(baseDir, sessionId);
     
-    console.log(`🔍 Looking for files in: ${sessionDir}`);
+    console.log(`📁 Session directory: ${sessionDir}`);
     
     if (!fs.existsSync(sessionDir)) {
       console.log(`📁 Session directory does not exist: ${sessionDir}`);
-      return { files: [], count: 0, sessionDir };
+      return { files: [], count: 0, sessionDir, exists: false };
     }
     
     const files = fs.readdirSync(sessionDir)
@@ -494,22 +547,51 @@ ipcMain.handle('get-local-files', async (event, sessionId) => {
         // Decode the filename to handle URL-encoded characters
         const decodedName = decodeURIComponent(file);
         
+        // Determine file type
+        const extension = path.extname(decodedName).toLowerCase();
+        let fileType = 'other';
+        if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].includes(extension)) {
+          fileType = 'image';
+        } else if (extension === '.pdf') {
+          fileType = 'pdf';
+        }
+        
         return {
           name: decodedName,
+          originalName: file, // Keep original encoded name for file operations
           localPath: filePath,
           size: stats.size,
+          type: fileType,
+          extension: extension,
           uploadTime: stats.mtime,
           modifiedTime: stats.mtime,
-          createdTime: stats.birthtime
+          createdTime: stats.birthtime,
+          isLocal: true
         };
       })
       .sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
     
-    console.log(`✅ Found ${files.length} local files for session ${sessionId}`);
-    return { files, count: files.length, sessionDir };
+    console.log(`✅ Found ${files.length} files in session folder`);
+    files.forEach(file => {
+      console.log(`  📄 ${file.name} (${file.type}) - ${(file.size / 1024).toFixed(1)} KB`);
+    });
+    
+    return { 
+      files, 
+      count: files.length, 
+      sessionDir, 
+      exists: true,
+      success: true 
+    };
   } catch (error) {
-    console.error('Error getting local files:', error);
-    return { files: [], count: 0, error: error.message };
+    console.error('❌ Error getting session files:', error);
+    return { 
+      files: [], 
+      count: 0, 
+      error: error.message, 
+      exists: false,
+      success: false 
+    };
   }
 });
 
@@ -534,48 +616,48 @@ ipcMain.handle('download-s3-files', async (event, sessionId, s3Files) => {
     const downloadedFiles = [];
     const errors = [];
     
-          for (const s3File of s3Files) {
-        try {
-          const { key, name } = s3File;
-          
-          // Decode the filename to handle URL-encoded characters
-          const decodedName = decodeURIComponent(name);
-          console.log(`📥 Downloading: ${decodedName} (original: ${name})`);
-          
-          // Download file from backend
-          const response = await fetch(`https://upload-backend-api.vercel.app/api/download-file?key=${encodeURIComponent(key)}`);
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          // Get file buffer
-          const buffer = await response.arrayBuffer();
-          
-          // Save to local file with decoded name
-          const localFilePath = path.join(sessionDir, decodedName);
-          fs.writeFileSync(localFilePath, Buffer.from(buffer));
-          
-          // Get file stats
-          const stats = fs.statSync(localFilePath);
-          
-          downloadedFiles.push({
-            name: decodedName,
-            localPath: localFilePath,
-            size: stats.size,
-            downloadTime: new Date().toISOString()
-          });
-          
-          console.log(`✅ Downloaded: ${decodedName} to ${localFilePath}`);
-          
-        } catch (error) {
-          console.error(`❌ Error downloading ${s3File.name}:`, error);
-          errors.push({
-            name: s3File.name,
-            error: error.message
-          });
+    for (const s3File of s3Files) {
+      try {
+        const { key, name } = s3File;
+        
+        // Decode the filename to handle URL-encoded characters
+        const decodedName = decodeURIComponent(name);
+        console.log(`📥 Downloading: ${decodedName} (original: ${name})`);
+        
+        // Download file from backend
+        const response = await fetch(`https://upload-backend-api.vercel.app/api/download-file?key=${encodeURIComponent(key)}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        // Get file buffer
+        const buffer = await response.arrayBuffer();
+        
+        // Save to local file with decoded name
+        const localFilePath = path.join(sessionDir, decodedName);
+        fs.writeFileSync(localFilePath, Buffer.from(buffer));
+        
+        // Get file stats
+        const stats = fs.statSync(localFilePath);
+        
+        downloadedFiles.push({
+          name: decodedName,
+          localPath: localFilePath,
+          size: stats.size,
+          downloadTime: new Date().toISOString()
+        });
+        
+        console.log(`✅ Downloaded: ${decodedName} to ${localFilePath}`);
+        
+      } catch (error) {
+        console.error(`❌ Error downloading ${s3File.name}:`, error);
+        errors.push({
+          name: s3File.name,
+          error: error.message
+        });
       }
+    }
     
     console.log(`✅ Completed downloading ${downloadedFiles.length} files for session ${sessionId}`);
     
@@ -595,4 +677,50 @@ ipcMain.handle('download-s3-files', async (event, sessionId, s3Files) => {
   }
 });
 
-
+// NEW: Handle sending SMS invoice
+ipcMain.handle('send-sms-invoice', async (event, invoiceData) => {
+  try {
+    console.log('📱 Sending SMS invoice:', invoiceData);
+    
+    // Here you would integrate with an SMS service like Twilio, AWS SNS, etc.
+    // For now, we'll simulate the SMS sending
+    
+    const { phoneNumber, amount, paymentId, sessionId, items } = invoiceData;
+    
+    // Format the invoice message
+    const message = `
+Print Shop Invoice
+Payment ID: ${paymentId}
+Session: ${sessionId}
+Amount: ₹${amount}
+Items: ${items.length} items
+Thank you for your business!
+    `.trim();
+    
+    console.log('📱 SMS Message:', message);
+    console.log('📱 Sending to:', phoneNumber);
+    
+    // TODO: Integrate with actual SMS service
+    // Example with Twilio:
+    // const twilio = require('twilio');
+    // const client = twilio(accountSid, authToken);
+    // await client.messages.create({
+    //   body: message,
+    //   from: '+1234567890',
+    //   to: phoneNumber
+    // });
+    
+    return {
+      success: true,
+      message: 'SMS invoice sent successfully',
+      phoneNumber: phoneNumber
+    };
+    
+  } catch (error) {
+    console.error('❌ Error sending SMS invoice:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});

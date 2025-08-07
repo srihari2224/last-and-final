@@ -91,14 +91,13 @@
   order: 1;
 }
 
-/* Container - 25% width - NO GAPS */
+/* Container - 25% width - FIXED GAPS */
 .file-transfer-page .container {
   width: 25%;
   max-width: 400px;
   margin: 0;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: none; /* Remove shadow to eliminate gaps */
   backdrop-filter: blur(10px);
   position: fixed;
   left: 0;
@@ -109,20 +108,22 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  border-right: 1px solid #e0e0e0; /* Add border instead of shadow */
+  border-right: 1px solid #e0e0e0;
 }
 
-/* Integrated FilePage Section - 75% width - NO GAPS */
+/* Integrated FilePage Section - 75% width - FIXED GAPS */
 .file-transfer-page .integrated-files-section {
   position: fixed;
   right: 0;
   top: 80px;
   width: 75%;
   height: calc(100vh - 80px);
-  background: #ffffff; /* Changed to white */
-  color: #000000; /* Changed to black */
+  background: #ffffff;
+  color: #000000;
   overflow: hidden;
-  left: 25%; /* Ensure perfect alignment */
+  left: 25%;
+  margin: 0;
+  padding: 0;
 }
 
 /* QR Code Section - Top of container */
