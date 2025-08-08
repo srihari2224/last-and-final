@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, Trash, ImageIcon, FileText, X } from 'lucide-react'
+import { Plus, Trash, ImageIcon, FileText, X, Printer, CheckCircle, AlertCircle } from 'lucide-react'
 import "./IntegratedFilePage.css"
 
 function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
@@ -45,6 +45,21 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const [mobileNumber, setMobileNumber] = useState("")
   const [mobileError, setMobileError] = useState("")
 
+  // NEW: File data cache
+  const [fileDataCache, setFileDataCache] = useState({})
+
+  // ENHANCED: Printing state with progress tracking
+  const [printingInProgress, setPrintingInProgress] = useState(false)
+  const [printProgress, setPrintProgress] = useState({
+    currentJob: '',
+    completed: 0,
+    total: 0,
+    status: 'idle'
+  })
+  const [availablePrinters, setAvailablePrinters] = useState([])
+  const [selectedPrinter, setSelectedPrinter] = useState(null)
+  const [printerStatus, setPrinterStatus] = useState({})
+
   // Group files by type (only images and PDFs) - USING LOCAL FILES
   const fileCategories = {
     images: files.filter((file) => {
@@ -80,7 +95,122 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
     loadPDFJS()
   }, [])
 
-  // Function to get image dimensions - FIXED FOR LOCAL FILES
+  // ENHANCED: Load printer information on component mount
+  useEffect(() => {
+    const loadEnhancedPrinterInfo = async () => {
+      if (window.electronAPI) {
+        try {
+          console.log('🖨️ Loading enhanced printer information...')
+          const result = await window.electronAPI.getEnhancedPrinterInfo()
+          
+          if (result.success) {
+            setAvailablePrinters(result.printers)
+            setSelectedPrinter(result.defaultPrinter)
+            console.log('✅ Enhanced printer info loaded:', result.printers.length, 'printers')
+            
+            // Test connectivity for default printer
+            if (result.defaultPrinter) {
+              testPrinterConnectivity(result.defaultPrinter.name)
+            }
+          } else {
+            console.error('❌ Failed to load printer info:', result.error)
+          }
+        } catch (error) {
+          console.error('❌ Error loading enhanced printer info:', error)
+        }
+      }
+    }
+    loadEnhancedPrinterInfo()
+  }, [])
+
+  // Test printer connectivity
+  const testPrinterConnectivity = async (printerName) => {
+    if (!window.electronAPI) return
+    
+    try {
+      console.log(`🔍 Testing connectivity for: ${printerName}`)
+      const result = await window.electronAPI.testPrinterConnectivity(printerName)
+      
+      setPrinterStatus(prev => ({
+        ...prev,
+        [printerName]: {
+          online: result.online,
+          status: result.status,
+          message: result.message,
+          lastChecked: new Date().toISOString()
+        }
+      }))
+      
+      console.log(`✅ Printer status updated for ${printerName}:`, result)
+    } catch (error) {
+      console.error(`❌ Error testing printer connectivity for ${printerName}:`, error)
+      setPrinterStatus(prev => ({
+        ...prev,
+        [printerName]: {
+          online: false,
+          status: 'error',
+          message: 'Connection test failed',
+          lastChecked: new Date().toISOString()
+        }
+      }))
+    }
+  }
+
+  // NEW: Load file data when files change - FIXED PDF BUFFER HANDLING
+  useEffect(() => {
+    const loadFileData = async () => {
+      if (!window.electronAPI || files.length === 0) return
+
+      console.log("🔄 Loading file data for", files.length, "files")
+      const newCache = {}
+
+      for (const file of files) {
+        try {
+          if (file.type === 'image' && file.localPath) {
+            console.log("📸 Loading image data for:", file.name)
+            const result = await window.electronAPI.getFileAsBase64(file.localPath)
+            if (result.success) {
+              newCache[file.name] = {
+                type: 'image',
+                dataUrl: result.dataUrl,
+                mimeType: result.mimeType,
+                size: result.size
+              }
+              console.log("✅ Image data loaded for:", file.name)
+            } else {
+              console.error("❌ Failed to load image data:", result.error)
+            }
+          } else if (file.type === 'pdf' && file.localPath) {
+            console.log("📄 Loading PDF data for:", file.name)
+            const result = await window.electronAPI.getPdfAsBuffer(file.localPath)
+            if (result.success) {
+              // Create a fresh Uint8Array from the transferred array data
+              const uint8Array = new Uint8Array(result.buffer)
+              newCache[file.name] = {
+                type: 'pdf',
+                buffer: uint8Array,
+                size: result.size,
+                // Store a function to create fresh copies
+                createFreshBuffer: () => new Uint8Array(result.buffer)
+              }
+              console.log("✅ PDF data loaded for:", file.name)
+            } else {
+              console.error("❌ Failed to load PDF data:", result.error)
+            }
+          }
+        } catch (error) {
+          console.error("❌ Error loading file data for", file.name, ":", error)
+        }
+      }
+
+      setFileDataCache(newCache)
+      console.log("✅ File data cache updated with", Object.keys(newCache).length, "files")
+    }
+
+    loadFileData()
+  }, [files])
+
+  // Function to get image dimensions - FIXED FOR BASE64 DATA
   const getImageDimensions = (file) => {
     return new Promise((resolve) => {
       const img = new Image()
@@ -105,164 +235,106 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
         resolve({ width: 150, height: 150 })
       }
 
-      // Handle local files from session folder
-      if (file.localPath && window.electronAPI) {
-        console.log("📐 Getting dimensions for local file:", file.localPath)
-        img.src = `file://${file.localPath.replace(/\\/g, "/")}`
-      } else if (file instanceof File) {
-        img.src = URL.createObjectURL(file)
-      } else if (file.url) {
-        img.src = file.url
+      // Use cached base64 data
+      const cachedData = fileDataCache[file.name]
+      if (cachedData && cachedData.type === 'image') {
+        img.src = cachedData.dataUrl
       } else {
-        console.warn("No valid source for image dimensions:", file)
+        console.warn("No cached data for image:", file.name)
         resolve({ width: 150, height: 150 })
       }
     })
   }
 
-  // Function to get PDF page count - FIXED FOR LOCAL FILES
+  // Function to get PDF page count - FIXED FOR FRESH BUFFER
   const getPDFPageCount = async (file) => {
     return new Promise((resolve) => {
-      // For Electron local files, use the Electron API
-      if (file.localPath && window.electronAPI) {
-        console.log("📄 Getting PDF page count for local file:", file.localPath)
-        window.electronAPI
-          .getPdfPageCount(file.localPath)
-          .then((result) => {
-            if (result.success) {
-              console.log("✅ PDF page count:", result.pageCount)
-              resolve(result.pageCount)
-            } else {
-              console.warn("⚠️ Failed to get PDF page count:", result.error)
-              resolve(1)
-            }
-          })
-          .catch((error) => {
-            console.error("❌ Error getting PDF page count:", error)
-            resolve(1)
-          })
-        return
-      }
-
-      // Fallback for web files
-      const reader = new FileReader()
-      reader.onload = async function () {
-        try {
-          if (!window.pdfjsLib) {
-            resolve(1)
-            return
-          }
-          const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
-          resolve(pdf.numPages)
-        } catch (error) {
-          console.error("Error loading PDF:", error)
+      try {
+        if (!window.pdfjsLib) {
+          console.warn("PDF.js not available")
           resolve(1)
+          return
         }
-      }
-      reader.onerror = () => resolve(1)
 
-      if (file instanceof File) {
-        reader.readAsArrayBuffer(file)
+        const cachedData = fileDataCache[file.name]
+        if (cachedData && cachedData.type === 'pdf') {
+          console.log("📄 Getting PDF page count from cached buffer:", file.name)
+        
+          // Create a fresh buffer copy to prevent detached buffer issues
+          const freshBuffer = cachedData.createFreshBuffer()
+        
+          window.pdfjsLib.getDocument({ data: freshBuffer }).promise
+            .then((pdf) => {
+              console.log("✅ PDF page count:", pdf.numPages)
+              resolve(pdf.numPages)
+            })
+            .catch((error) => {
+              console.error("❌ Error getting PDF page count:", error)
+              resolve(1)
+            })
       } else {
+        console.warn("No cached PDF data for:", file.name)
         resolve(1)
       }
-    })
-  }
-
-  // Load PDF for preview - FIXED FOR LOCAL FILES
-  const loadPDFPreview = async (file) => {
-    try {
-      if (!window.pdfjsLib) {
-        console.log("PDF.js not available")
-        return
-      }
-
-      console.log("📄 Loading PDF preview for:", file.name)
-
-      // For Electron local files, read the file directly
-      if (file.localPath && window.electronAPI) {
-        try {
-          console.log("📁 Loading local PDF:", file.localPath)
-          const response = await fetch(`file://${file.localPath.replace(/\\/g, "/")}`)
-          const arrayBuffer = await response.arrayBuffer()
-
-          const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise
-          setPdfDoc(pdf)
-          setCurrentPdfPage(1)
-
-          const pages = []
-          const maxPreviewPages = Math.min(5, pdf.numPages)
-
-          for (let i = 1; i <= maxPreviewPages; i++) {
-            const page = await pdf.getPage(i)
-            const scale = 1.2
-            const viewport = page.getViewport({ scale })
-
-            const canvas = document.createElement("canvas")
-            const context = canvas.getContext("2d")
-            canvas.height = viewport.height
-            canvas.width = viewport.width
-
-            const renderContext = {
-              canvasContext: context,
-              viewport: viewport,
-            }
-
-            await page.render(renderContext).promise
-            pages.push({ canvas, pageNumber: i })
-          }
-
-          setAllPdfPages(pages)
-          console.log("✅ PDF preview loaded successfully")
-        } catch (error) {
-          console.error("❌ Error loading local PDF for preview:", error)
-        }
-        return
-      }
-
-      // Fallback for web files
-      const reader = new FileReader()
-      reader.onload = async function () {
-        try {
-          const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
-          setPdfDoc(pdf)
-          setCurrentPdfPage(1)
-
-          const pages = []
-          const maxPreviewPages = Math.min(5, pdf.numPages)
-
-          for (let i = 1; i <= maxPreviewPages; i++) {
-            const page = await pdf.getPage(i)
-            const scale = 1.2
-            const viewport = page.getViewport({ scale })
-
-            const canvas = document.createElement("canvas")
-            const context = canvas.getContext("2d")
-            canvas.height = viewport.height
-            canvas.width = viewport.width
-
-            const renderContext = {
-              canvasContext: context,
-              viewport: viewport,
-            }
-
-            await page.render(renderContext).promise
-            pages.push({ canvas, pageNumber: i })
-          }
-
-          setAllPdfPages(pages)
-        } catch (error) {
-          console.error("Error loading PDF for preview:", error)
-        }
-      }
-
-      if (file instanceof File) {
-        reader.readAsArrayBuffer(file)
-      }
     } catch (error) {
-      console.error("Error in loadPDFPreview:", error)
+      console.error("Error in getPDFPageCount:", error)
+      resolve(1)
     }
+  })
+}
+
+// Load PDF for preview - FIXED FOR FRESH BUFFER
+const loadPDFPreview = async (file) => {
+  try {
+    if (!window.pdfjsLib) {
+      console.log("PDF.js not available")
+      return
+    }
+
+    console.log("📄 Loading PDF preview for:", file.name)
+
+    const cachedData = fileDataCache[file.name]
+    if (cachedData && cachedData.type === 'pdf') {
+      console.log("📁 Loading PDF from cached buffer")
+      
+      // Create a fresh buffer copy to prevent detached buffer issues
+      const freshBuffer = cachedData.createFreshBuffer()
+      
+      const pdf = await window.pdfjsLib.getDocument({ data: freshBuffer }).promise
+      setPdfDoc(pdf)
+      setCurrentPdfPage(1)
+
+      const pages = []
+      const maxPreviewPages = Math.min(5, pdf.numPages)
+
+      for (let i = 1; i <= maxPreviewPages; i++) {
+        const page = await pdf.getPage(i)
+        const scale = 1.2
+        const viewport = page.getViewport({ scale })
+
+        const canvas = document.createElement("canvas")
+        const context = canvas.getContext("2d")
+        canvas.height = viewport.height
+        canvas.width = viewport.width
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        }
+
+        await page.render(renderContext).promise
+        pages.push({ canvas, pageNumber: i })
+      }
+
+      setAllPdfPages(pages)
+      console.log("✅ PDF preview loaded successfully")
+    } else {
+      console.error("❌ No cached PDF data available for:", file.name)
+    }
+  } catch (error) {
+    console.error("❌ Error in loadPDFPreview:", error)
   }
+}
 
   // Show Microsoft Edge style print dialog when PDF is clicked
   const handlePDFClick = async (file) => {
@@ -437,22 +509,22 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
     )
   }
 
-  // Handle deleting a page
-  const deletePage = (pageId) => {
-    const newPages = pages.filter((page) => page.id !== pageId)
-    if (newPages.length > 0) {
-      newPages.forEach((page, index) => {
-        page.id = index + 1
-      })
-      const pageIndex = pages.findIndex((page) => page.id === pageId)
-      const newActivePageId =
-        pageIndex > 0 ? (pageIndex < newPages.length ? pageIndex : newPages.length) : newPages.length > 0 ? 1 : 1
-      setActivePage(newActivePageId)
-    } else {
-      setActivePage(null)
-    }
-    setPages(newPages)
+// Handle deleting a page
+const deletePage = (pageId) => {
+  const newPages = pages.filter((page) => page.id !== pageId)
+  if (newPages.length > 0) {
+    newPages.forEach((page, index) => {
+      page.id = index + 1
+    })
+    const pageIndex = pages.findIndex((page) => page.id === pageId)
+    const newActivePageId =
+      pageIndex > 0 ? (pageIndex < newPages.length ? pageIndex : newPages.length > 0 ? 1 : 1) : 1
+    setActivePage(newActivePageId)
+  } else {
+    setActivePage(null)
   }
+  setPages(newPages)
+}
 
   // Handle drag start for files
   const handleDragStart = (file) => {
@@ -590,8 +662,22 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
       return
     }
 
+    // ENHANCED: Check printer connectivity before payment
+    if (selectedPrinter && window.electronAPI) {
+      try {
+        const connectivityResult = await window.electronAPI.testPrinterConnectivity(selectedPrinter.name)
+        if (!connectivityResult.online) {
+          const proceed = confirm(`Warning: Selected printer "${selectedPrinter.displayName}" appears to be offline. Do you want to proceed with payment anyway?`)
+          if (!proceed) return
+        }
+      } catch (error) {
+        console.warn('Could not test printer connectivity:', error)
+      }
+    }
+
     console.log("💳 Starting direct Razorpay payment for ₹", totalAmount)
     console.log("📱 Mobile number:", mobileNumber)
+    console.log("🖨️ Selected printer:", selectedPrinter?.displayName || 'Default')
     setPaymentProcessing(true)
 
     try {
@@ -636,7 +722,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
       // DIRECT PAYMENT WITHOUT ORDER - ENHANCED WITH MOBILE
       const options = {
-        key: "rzp_live_jm6OsGGo5hOcUQ", // Your Razorpay key
+        key: "rzp_test_8QyfWw0JDb0BAq", // Your Razorpay key
         amount: totalAmount * 100, // Amount in paise
         currency: "INR",
         name: "Print Shop",
@@ -647,7 +733,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           console.log("Payment ID:", response.razorpay_payment_id)
           
           // Process the print job and send SMS invoice
-          processPrintJobWithInvoice(response)
+          processAdvancedPrintJobWithInvoice(response)
         },
         prefill: {
           name: "Customer",
@@ -660,6 +746,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           pdfJobs: printQueue.length,
           timestamp: new Date().toISOString(),
           mobileNumber: mobileNumber,
+          printerName: selectedPrinter?.name || 'default'
         },
         theme: {
           color: "#000000",
@@ -711,13 +798,29 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
     }
   }
 
-  // Process print job after successful payment and send SMS invoice
-  const processPrintJobWithInvoice = async (paymentResponse) => {
-    console.log("🖨️ Processing print job after payment:", paymentResponse)
+  // ENHANCED: ADVANCED SILENT PRINTING IMPLEMENTATION - Process print job after successful payment
+  const processAdvancedPrintJobWithInvoice = async (paymentResponse) => {
+    console.log("🖨️ Processing advanced print job after payment:", paymentResponse)
     
     try {
       // Show success message immediately
-      alert("Payment successful! Your print job will be processed.")
+      alert("Payment successful! Your print job is being processed...")
+      
+      // Start printing process
+      setPrintingInProgress(true)
+      
+      // Calculate total jobs for progress tracking
+      const totalJobs = pages.length + printQueue.length
+      let completedJobs = 0
+      
+      console.log(`📊 Total print jobs to process: ${totalJobs} (${pages.length} canvas pages + ${printQueue.length} PDF jobs)`)
+      
+      setPrintProgress({
+        currentJob: 'Initializing print jobs...',
+        completed: 0,
+        total: totalJobs,
+        status: 'processing'
+      })
       
       // Prepare invoice data
       const invoiceItems = []
@@ -735,7 +838,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
       printQueue.forEach((pdfJob) => {
         invoiceItems.push({
           type: 'pdf',
-          description: `${pdfJob.fileName} (${pdfJob.printSettings.copies} copies)`,
+          description: `${pdfJob.fileName} (${pdfJob.printSettings.copies} copies, ${pdfJob.printSettings.colorMode === 'color' ? 'Color' : 'B&W'}, ${pdfJob.printSettings.doubleSided === 'both-sides' ? 'Duplex' : 'Single-sided'})`,
           cost: pdfJob.cost
         })
       })
@@ -748,7 +851,8 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
             amount: calculateTotalCost(),
             paymentId: paymentResponse.razorpay_payment_id,
             sessionId: sessionId,
-            items: invoiceItems
+            items: invoiceItems,
+            printerName: selectedPrinter?.displayName || 'Default Printer'
           }
           
           const smsResult = await window.electronAPI.sendSmsInvoice(invoiceData)
@@ -763,52 +867,189 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
         }
       }
       
-      // Process canvas pages
-      for (const page of pages) {
-        console.log(`🖨️ Processing canvas page ${page.id} (${page.colorMode})`)
-        // Here you would send the page data to your printing service
-      }
-
-      // Process PDF queue
-      for (const pdfJob of printQueue) {
-        console.log(`🖨️ Processing PDF: ${pdfJob.fileName}`)
+      // ENHANCED SILENT PRINTING WITH PROPER ERROR HANDLING
+      if (window.electronAPI && selectedPrinter) {
+        console.log("🖨️ Starting enhanced silent printing process...")
+        console.log(`🎯 Using printer: ${selectedPrinter.name} (${selectedPrinter.displayName})`)
         
-        // If using Electron, you can use the print APIs
-        if (window.electronAPI && pdfJob.file.localPath) {
-          try {
-            const printResult = await window.electronAPI.addToPrintQueue({
-              id: pdfJob.id,
-              fileName: pdfJob.fileName,
-              filePath: pdfJob.file.localPath,
-              printOptions: pdfJob.printSettings,
-              cost: pdfJob.cost,
-              paymentId: paymentResponse.razorpay_payment_id,
+        let printErrors = []
+        const printerName = selectedPrinter.name // Use the actual printer name, not displayName
+        
+        // Verify printer is available before starting
+        try {
+          console.log(`🔍 Verifying printer availability: ${printerName}`)
+          const connectivityTest = await window.electronAPI.testPrinterConnectivity(printerName)
+          console.log(`📊 Printer connectivity result:`, connectivityTest)
+          
+          if (!connectivityTest.success || !connectivityTest.online) {
+            console.warn(`⚠️ Printer may be offline: ${connectivityTest.message}`)
+            // Continue anyway but warn user
+          }
+        } catch (connectivityError) {
+          console.warn(`⚠️ Could not test printer connectivity:`, connectivityError)
+        }
+        
+        // 1. Process Canvas Pages with Enhanced Error Handling
+        if (pages.length > 0) {
+          console.log(`🖨️ Processing ${pages.length} canvas pages...`)
+          
+          for (const page of pages) {
+            try {
+              completedJobs++
+              setPrintProgress({
+                currentJob: `Printing Canvas Page ${page.id} (${page.colorMode})`,
+                completed: completedJobs,
+                total: totalJobs,
+                status: 'processing'
+              })
+              
+              console.log(`🖨️ Printing canvas page ${page.id} (${page.colorMode}) to ${printerName}`)
+              
+              // Validate page has items
+              if (!page.items || page.items.length === 0) {
+                console.warn(`⚠️ Canvas page ${page.id} has no items, skipping...`)
+                continue
+              }
+              
+              const canvasData = {
+                pageData: page,
+                colorMode: page.colorMode,
+                printerName: printerName,
+                silent: true
+              }
+              
+              console.log(`📤 Sending canvas print request:`, canvasData)
+              const printResult = await window.electronAPI.advancedCanvasPrint(canvasData)
+              console.log(`📥 Canvas print result:`, printResult)
+              
+              if (printResult.success) {
+                console.log(`✅ Canvas page ${page.id} printed successfully using ${printResult.method}`)
+              } else {
+                console.error(`❌ Failed to print canvas page ${page.id}:`, printResult.error)
+                printErrors.push(`Canvas Page ${page.id}: ${printResult.error}`)
+              }
+              
+              // Delay between prints to avoid overwhelming the printer
+              await new Promise(resolve => setTimeout(resolve, 2000))
+              
+            } catch (error) {
+              console.error(`❌ Error printing canvas page ${page.id}:`, error)
+              printErrors.push(`Canvas Page ${page.id}: ${error.message}`)
+            }
+          }
+        }
+
+        // 2. Process PDF Queue with Enhanced Error Handling
+        if (printQueue.length > 0) {
+          console.log(`🖨️ Processing ${printQueue.length} PDF jobs...`)
+          
+          for (const pdfJob of printQueue) {
+            try {
+              completedJobs++
+              setPrintProgress({
+                currentJob: `Printing PDF: ${pdfJob.fileName} (${pdfJob.printSettings.copies} copies)`,
+                completed: completedJobs,
+                total: totalJobs,
+                status: 'processing'
             })
             
-            if (printResult.success) {
-              console.log("✅ PDF added to print queue:", pdfJob.fileName)
+            console.log(`🖨️ Printing PDF: ${pdfJob.fileName} with settings:`, pdfJob.printSettings)
+            
+            // Validate PDF file exists
+            if (!pdfJob.file || !pdfJob.file.localPath) {
+              console.error(`❌ PDF job missing file path:`, pdfJob)
+              printErrors.push(`PDF ${pdfJob.fileName}: Missing file path`)
+              continue
             }
+            
+            const printOptions = {
+              filePath: pdfJob.file.localPath,
+              printerName: printerName,
+              copies: pdfJob.printSettings.copies,
+              pageRange: pdfJob.printSettings.pageRange,
+              customPages: pdfJob.printSettings.customPages,
+              colorMode: pdfJob.printSettings.colorMode,
+              doubleSided: pdfJob.printSettings.doubleSided,
+              silent: true
+            }
+            
+            console.log(`📤 Sending PDF print request:`, printOptions)
+            const printResult = await window.electronAPI.advancedPdfPrint(printOptions)
+            console.log(`📥 PDF print result:`, printResult)
+            
+            if (printResult.success) {
+              console.log(`✅ PDF ${pdfJob.fileName} printed successfully using ${printResult.method}`)
+            } else {
+              console.error(`❌ Failed to print PDF ${pdfJob.fileName}:`, printResult.error)
+              printErrors.push(`PDF ${pdfJob.fileName}: ${printResult.error}`)
+              
+              // Show specific error details
+              if (printResult.details) {
+                console.warn(`💡 PDF Printing Details: ${printResult.details}`)
+              }
+            }
+            
+            // Longer delay between PDF prints
+            await new Promise(resolve => setTimeout(resolve, 3000))
+            
           } catch (error) {
-            console.error("❌ Error adding PDF to print queue:", error)
+            console.error(`❌ Error printing PDF ${pdfJob.fileName}:`, error)
+            printErrors.push(`PDF ${pdfJob.fileName}: ${error.message}`)
           }
         }
       }
-
-      // Clear the queues after processing
-      setPages([{ id: 1, items: [], colorMode: "color" }])
-      setPrintQueue([])
-      setActivePage(1)
-      setMobileNumber("")
       
-      console.log("✅ Print job processing completed")
+      // Update final progress
+      setPrintProgress({
+        currentJob: 'Print jobs completed',
+        completed: totalJobs,
+        total: totalJobs,
+        status: printErrors.length === 0 ? 'completed' : 'completed_with_errors'
+      })
       
-    } catch (error) {
-      console.error("❌ Error processing print job:", error)
-      alert("Payment successful, but there was an issue processing your print job. Please contact support.")
-    } finally {
-      setPaymentProcessing(false)
+      // Show comprehensive final status
+      if (printErrors.length === 0) {
+        alert(`✅ All ${totalJobs} print jobs completed successfully!\n\nPrinter: ${selectedPrinter.displayName}\nCanvas Pages: ${pages.length}\nPDF Jobs: ${printQueue.length}`)
+      } else {
+        console.warn("⚠️ Print jobs completed with errors:", printErrors)
+        const errorSummary = printErrors.join('\n• ')
+        alert(`⚠️ Print jobs completed with ${printErrors.length} errors:\n\n• ${errorSummary}\n\nSuccessful jobs: ${totalJobs - printErrors.length}/${totalJobs}`)
+      }
+      
+    } else {
+      // Handle case where Electron API is not available or no printer selected
+      if (!window.electronAPI) {
+        console.warn("⚠️ Electron API not available - printing skipped")
+        alert("✅ Payment successful! Print jobs queued.\n\n⚠️ Desktop app required for actual printing.")
+      } else if (!selectedPrinter) {
+        console.warn("⚠️ No printer selected - printing skipped")
+        alert("✅ Payment successful! Print jobs queued.\n\n⚠️ Please select a printer for printing.")
+      }
     }
+
+    // Clear the queues after processing
+    console.log("🧹 Clearing print queues...")
+    setPages([{ id: 1, items: [], colorMode: "color" }])
+    setPrintQueue([])
+    setActivePage(1)
+    setMobileNumber("")
+    
+    console.log("✅ Advanced print job processing completed successfully")
+    
+  } catch (error) {
+    console.error("❌ Error processing advanced print job:", error)
+    alert(`❌ Payment successful, but there was an issue processing your print job:\n\n${error.message}\n\nPlease contact support with Payment ID: ${paymentResponse.razorpay_payment_id}`)
+  } finally {
+    setPaymentProcessing(false)
+    setPrintingInProgress(false)
+    setPrintProgress({
+      currentJob: '',
+      completed: 0,
+      total: 0,
+      status: 'idle'
+    })
   }
+}
 
   // Get current page
   const currentPage = pages.find((page) => page.id === activePage) || pages[0]
@@ -834,19 +1075,14 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
     }
   }, [])
 
-  // Create file URL helper - FIXED FOR LOCAL FILES
+  // Create file URL helper - FIXED FOR BASE64 DATA
   const getFileUrl = (file) => {
-    if (file.localPath && window.electronAPI) {
-      // Use file:// protocol for local files in Electron
-      const localUrl = `file://${file.localPath.replace(/\\/g, "/")}`
-      console.log("🔗 Using local file URL:", localUrl)
-      return localUrl
-    } else if (file instanceof File) {
-      return URL.createObjectURL(file)
-    } else if (file.url) {
-      return file.url
+    const cachedData = fileDataCache[file.name]
+    if (cachedData && cachedData.type === 'image') {
+      return cachedData.dataUrl
     }
-    console.warn("⚠️ No valid URL source for file:", file.name)
+    
+    console.warn("⚠️ No cached data for file:", file.name)
     return "/placeholder.svg"
   }
 
@@ -854,7 +1090,8 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   useEffect(() => {
     console.log("📁 IntegratedFilePage received files:", files)
     console.log("📊 File categories:", fileCategories)
-  }, [files])
+    console.log("💾 File data cache:", fileDataCache)
+  }, [files, fileDataCache])
 
   return (
     <div className="integrated-files-page">
@@ -863,6 +1100,34 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           <div className="file-categories">
             <div className="category-header">
               <h3>Categories</h3>
+              {/* ENHANCED: Printer Status Display */}
+              {selectedPrinter && (
+                <div className="printer-status" style={{ 
+                  marginTop: '10px', 
+                  padding: '8px', 
+                  backgroundColor: printerStatus[selectedPrinter.name]?.online ? '#e8f5e8' : '#ffeaea',
+                  borderRadius: '4px',
+                  fontSize: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Printer size={14} />
+                    <span style={{ fontWeight: 'bold' }}>{selectedPrinter.displayName}</span>
+                    {printerStatus[selectedPrinter.name]?.online ? (
+                      <CheckCircle size={14} color="#28a745" />
+                    ) : (
+                      <AlertCircle size={14} color="#dc3545" />
+                    )}
+                  </div>
+                  <div style={{ marginTop: '4px', color: '#666' }}>
+                    {printerStatus[selectedPrinter.name]?.message || 'Status unknown'}
+                  </div>
+                  {selectedPrinter.capabilities && (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#888' }}>
+                      Features: {selectedPrinter.capabilities.duplex ? 'Duplex' : 'Single-sided'}, {selectedPrinter.capabilities.color ? 'Color' : 'B&W only'}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="category">
@@ -871,32 +1136,50 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                 <span>Images ({fileCategories.images.length})</span>
               </div>
               <ul className="file-list">
-                {fileCategories.images.map((file, index) => (
-                  <li key={index} className="file-item" draggable onDragStart={() => handleDragStart(file)}>
-                    <div className="file-preview">
-                      <img
-                        src={getFileUrl(file) || "/placeholder.svg"}
-                        alt={file.name}
-                        className="thumbnail"
-                        onError={(e) => {
-                          console.error("❌ Failed to load image:", file.name)
-                          e.target.src = "/placeholder.svg"
-                        }}
-                      />
-                    </div>
-                    <div className="file-info">
-                      <div className="file-name">
-                        {file.name.length > 15 ? `${file.name.substring(0, 15)}...` : file.name}
+                {fileCategories.images.map((file, index) => {
+                  const cachedData = fileDataCache[file.name]
+                  return (
+                    <li key={index} className="file-item" draggable onDragStart={() => handleDragStart(file)}>
+                      <div className="file-preview">
+                        {cachedData && cachedData.type === 'image' ? (
+                          <img
+                            src={cachedData.dataUrl || "/placeholder.svg"}
+                            alt={file.name}
+                            className="thumbnail"
+                            onError={(e) => {
+                              console.error("❌ Failed to load cached image:", file.name)
+                              e.target.src = "/placeholder.svg"
+                            }}
+                          />
+                        ) : (
+                          <div style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            background: '#f0f0f0', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: '#666'
+                          }}>
+                            Loading...
+                          </div>
+                        )}
                       </div>
-                      <div className="file-size">{file.size ? (file.size / 1024).toFixed(1) : "0"} KB</div>
-                      {file.localPath && (
-                        <div className="file-size" style={{ color: "#28a745", fontSize: "10px" }}>
-                          📁 Local
+                      <div className="file-info">
+                        <div className="file-name">
+                          {file.name.length > 15 ? `${file.name.substring(0, 15)}...` : file.name}
                         </div>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                        <div className="file-size">{file.size ? (file.size / 1024).toFixed(1) : "0"} KB</div>
+                        {file.localPath && (
+                          <div className="file-size" style={{ color: "#28a745", fontSize: "10px" }}>
+                            📁 Local
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
 
@@ -944,7 +1227,8 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                         </div>
                         <div className="file-details">
                           {item.printSettings.copies} copies • {item.printSettings.pageRange} •
-                          {item.printSettings.colorMode === "color" ? " Color" : " B&W"}
+                          {item.printSettings.colorMode === "color" ? " Color" : " B&W"} •
+                          {item.printSettings.doubleSided === "both-sides" ? " Duplex" : " Single"}
                         </div>
                         <div className="cost-display">₹{item.cost}</div>
                       </div>
@@ -1164,7 +1448,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
             </div>
           </div>
 
-          {/* ENHANCED PAYMENT SECTION WITH MOBILE NUMBER */}
+          {/* ENHANCED PAYMENT SECTION WITH MOBILE NUMBER AND PRINTER SELECTION */}
           <div className="payment-floating-container">
             <div className="payment-box">
               <div className="payment-summary">
@@ -1173,6 +1457,33 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                   <span>₹{calculateTotalCost()}</span>
                 </div>
               </div>
+              
+              {/* Printer Selection */}
+              {availablePrinters.length > 0 && (
+                <div className="printer-selection-section">
+                  <label className="printer-selection-label" htmlFor="printer-select">
+                    Select Printer
+                  </label>
+                  <select
+                    id="printer-select"
+                    className="printer-select"
+                    value={selectedPrinter?.name || ''}
+                    onChange={(e) => {
+                      const printer = availablePrinters.find(p => p.name === e.target.value)
+                      setSelectedPrinter(printer)
+                      if (printer) {
+                        testPrinterConnectivity(printer.name)
+                      }
+                    }}
+                  >
+                    {availablePrinters.map((printer) => (
+                      <option key={printer.name} value={printer.name}>
+                        {printer.displayName} {printer.isDefault ? '(Default)' : ''} {printer.type === 'network' ? '(Network)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               
               {/* Mobile Number Input */}
               <div className="mobile-input-section">
@@ -1196,17 +1507,34 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
               <button
                 className="payment-button"
                 onClick={handlePaymentClick}
-                disabled={calculateTotalCost() === 0 || paymentProcessing || !mobileNumber}
+                disabled={calculateTotalCost() === 0 || paymentProcessing || !mobileNumber || printingInProgress}
               >
                 <span className="btn-text">
-                  {paymentProcessing ? "Loading Payment..." : "Pay Now"}
+                  {printingInProgress ? "Printing..." : paymentProcessing ? "Loading Payment..." : "Pay Now"}
                 </span>
               </button>
               
-              {paymentProcessing && (
+              {(paymentProcessing || printingInProgress) && (
                 <div className="payment-processing">
+                  {printingInProgress && printProgress.status !== 'idle' && (
+                    <div className="print-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className="progress-fill" 
+                          style={{ 
+                            width: `${(printProgress.completed / printProgress.total) * 100}%`,
+                            backgroundColor: printProgress.status === 'completed' ? '#28a745' : 
+                                           printProgress.status === 'completed_with_errors' ? '#ffc107' : '#007bff'
+                          }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        {printProgress.currentJob} ({printProgress.completed}/{printProgress.total})
+                      </div>
+                    </div>
+                  )}
                   <p style={{ textAlign: "center", marginTop: "10px", color: "#666", fontSize: "14px" }}>
-                    Loading Razorpay payment gateway...
+                    {printingInProgress ? "Advanced print jobs are being processed..." : "Loading Razorpay payment gateway..."}
                   </p>
                 </div>
               )}
@@ -1215,13 +1543,13 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
         </div>
       </div>
 
-      {/* Microsoft Edge Style Print Dialog */}
+      {/* Microsoft Edge Style Print Dialog - ENHANCED WITH DUPLEX SUPPORT */}
       {showEdgePrintDialog && (
         <div className="print-modal">
           <div className="edge-print-dialog">
             <div className="print-dialog-left">
               <div className="print-dialog-header">
-                <h2>Print</h2>
+                <h2>Advanced Print Settings</h2>
                 <button className="close-dialog" onClick={() => setShowEdgePrintDialog(false)}>
                   <X size={18} />
                 </button>
@@ -1229,6 +1557,9 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
               <div className="print-info">
                 <p className="total-sheets">Total: {pdfPageCount} sheets of paper</p>
+                {selectedPrinter && (
+                  <p className="printer-info">Printer: {selectedPrinter.displayName}</p>
+                )}
               </div>
 
               <div className="print-options-section">
@@ -1293,9 +1624,31 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                   </select>
                 </div>
 
+                {/* ENHANCED: DUPLEX OPTION WITH PRINTER CAPABILITY CHECK */}
+                <div className="print-option-group">
+                  <label className="print-option-label">
+                    Duplex 
+                    {selectedPrinter && !selectedPrinter.capabilities?.duplex && (
+                      <span style={{ fontSize: '11px', color: '#888' }}> (Not supported)</span>
+                    )}
+                  </label>
+                  <select
+                    value={edgePrintSettings.doubleSided}
+                    onChange={(e) => setEdgePrintSettings({ ...edgePrintSettings, doubleSided: e.target.value })}
+                    className="print-select"
+                    disabled={selectedPrinter && !selectedPrinter.capabilities?.duplex}
+                  >
+                    <option value="one-side">Print one-sided</option>
+                    <option value="both-sides">Print on both sides</option>
+                  </select>
+                </div>
+
                 <div className="cost-display-section">
                   <div className="cost-breakdown">
                     <h4>Cost: ₹{calculateEdgePrintCost()}</h4>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                      Advanced printing features will be applied
+                    </div>
                   </div>
                 </div>
               </div>
