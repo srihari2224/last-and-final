@@ -416,10 +416,13 @@ const findSumatraPDF = () => {
   return null
 }
 
+// Define the target printer name based on user's screenshot
+const TARGET_PRINTER_NAME = "HP Smart Tank 710-720 series"
+
 // SIMPLIFIED BUT RELIABLE PDF PRINTING WITH COLOR/DUPLEX SUPPORT
 ipcMain.handle("print-pdf", async (event, printOptions) => {
   try {
-    logPrint(`🖨️ Starting RELIABLE PDF print with options: ${JSON.stringify(printOptions)}`)
+    logPrint(`🖨️ Starting RELIABLE PDF print for "${TARGET_PRINTER_NAME}" with options: ${JSON.stringify(printOptions)}`)
 
     const {
       filePath,
@@ -467,7 +470,7 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
         logPrint("🔄 Trying SumatraPDF with RELIABLE settings...")
 
         // Build SumatraPDF command with proper settings
-        let sumatraCmd = `"${sumatraPath}" -print-to-default "${targetPath}"`
+        let sumatraCmd = `"${sumatraPath}" -print-to "${TARGET_PRINTER_NAME}" "${targetPath}"`
 
         // Add print settings - SIMPLE but EFFECTIVE
         const settings = []
@@ -508,7 +511,7 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
         logPrint("🔄 Trying Adobe Reader - SIMPLE method...")
 
         // Simple Adobe Reader command
-        const adobeCmd = `"${adobePath}" /t "${targetPath}"`
+        const adobeCmd = `"${adobePath}" /t "${targetPath}" "${TARGET_PRINTER_NAME}"`
         logPrint(`🖨️ Adobe Reader command: ${adobeCmd}`)
 
         for (let copy = 1; copy <= copies; copy++) {
@@ -529,12 +532,18 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
       }
     }
 
-    // Method 3: Windows ShellExecute - MOST RELIABLE
+    // Method 3: Windows ShellExecute - MOST RELIABLE (requires default printer to be set or specific printer to be known by system)
+    // Note: ShellExecute 'Print' verb usually prints to default printer.
+    // To target a specific printer, 'PrintTo' verb is used with printer name as argument.
     if (!printSuccess) {
       try {
-        logPrint("🔄 Trying Windows ShellExecute - MOST RELIABLE...")
+        logPrint("🔄 Trying Windows ShellExecute 'PrintTo' - MOST RELIABLE...")
 
-        const shellCmd = `powershell -Command "Start-Process -FilePath '${targetPath}' -Verb Print -WindowStyle Hidden"`
+        // Escape targetPath and TARGET_PRINTER_NAME for PowerShell
+        const escapedTargetPath = targetPath.replace(/'/g, "''")
+        const escapedPrinterName = TARGET_PRINTER_NAME.replace(/'/g, "''")
+
+        const shellCmd = `powershell -Command "Start-Process -FilePath '${escapedTargetPath}' -Verb PrintTo -ArgumentList '${escapedPrinterName}' -WindowStyle Hidden"`
         logPrint(`🖨️ ShellExecute command: ${shellCmd}`)
 
         for (let copy = 1; copy <= copies; copy++) {
@@ -560,74 +569,80 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
       try {
         logPrint("🔄 Trying simple print command - FALLBACK...")
 
-        // Get default printer
-        const printerQuery = `Get-WmiObject -Class Win32_Printer | Where-Object {$_.Default -eq $true} | Select-Object Name | ConvertTo-Json`
-        const { stdout: printerStdout } = await execAsync(`powershell -Command "${printerQuery}"`)
-
-        if (printerStdout.trim()) {
-          const printer = JSON.parse(printerStdout.trim())
-          const printerName = printer.Name
-          logPrint(`🖨️ Using printer: ${printerName}`)
-
-          for (let copy = 1; copy <= copies; copy++) {
-            const printCmd = `print /D:"${printerName}" "${targetPath}"`
-            logPrint(`🖨️ Print command: ${printCmd}`)
-            const { stdout, stderr } = await execAsync(printCmd)
-            logPrint(`✅ Print command copy ${copy}/${copies} executed`)
-            if (stderr) logPrint(`⚠️ Print command stderr: ${stderr}`)
-            if (copy < copies) {
-              await new Promise((resolve) => setTimeout(resolve, 2000))
-            }
+        for (let copy = 1; copy <= copies; copy++) {
+          const printCmd = `print /D:"${TARGET_PRINTER_NAME}" "${targetPath}"`
+          logPrint(`🖨️ Print command: ${printCmd}`)
+          const { stdout, stderr } = await execAsync(printCmd)
+          logPrint(`✅ Print command copy ${copy}/${copies} executed`)
+          if (stderr) logPrint(`⚠️ Print command stderr: ${stderr}`)
+          if (copy < copies) {
+            await new Promise((resolve) => setTimeout(resolve, 2000))
           }
-
-          await new Promise((resolve) => setTimeout(resolve, 2000))
-          printSuccess = true
-          methodUsed = "Windows Print Command"
-          logPrint("✅ Windows print command successful")
         }
+
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        printSuccess = true
+        methodUsed = "Windows Print Command"
+        logPrint("✅ Windows print command successful")
       } catch (error) {
         logPrint(`⚠️ Windows print command failed: ${error.message}`)
       }
     }
 
     // APPLY COLOR/DUPLEX SETTINGS AFTER PRINTING (if possible)
+    // This is a best-effort attempt as direct control over print job settings
+    // is limited with these external tools. The primary way to control
+    // these is through the printer's default settings or the application's
+    // print dialog. We're trying to set the printer's default here.
     if (printSuccess) {
       try {
-        logPrint(`🎨 Attempting to apply ${colorMode} and ${doubleSided} settings post-print...`)
+        logPrint(
+          `🎨 Attempting to apply ${colorMode} and ${doubleSided} settings to "${TARGET_PRINTER_NAME}" post-print...`,
+        )
 
-        const printerQuery = `Get-WmiObject -Class Win32_Printer | Where-Object {$_.Default -eq $true} | Select-Object Name | ConvertTo-Json`
-        const { stdout: printerStdout } = await execAsync(`powershell -Command "${printerQuery}"`)
-
-        if (printerStdout.trim()) {
-          const printer = JSON.parse(printerStdout.trim())
-          const printerName = printer.Name
-
-          // Try to set color mode
-          if (colorMode === "bw") {
-            try {
-              await execAsync(
-                `powershell -Command "Set-PrintConfiguration -PrinterName '${printerName}' -Color $false"`,
-              )
-              logPrint("✅ Post-print: B&W mode applied")
-            } catch (e) {
-              logPrint(`⚠️ Post-print color setting failed: ${e.message}`)
-            }
+        // Try to set color mode
+        if (colorMode === "bw") {
+          try {
+            await execAsync(
+              `powershell -Command "Set-PrintConfiguration -PrinterName '${TARGET_PRINTER_NAME}' -Color $false"`,
+            )
+            logPrint("✅ Post-print: B&W mode applied to printer")
+          } catch (e) {
+            logPrint(`⚠️ Post-print color setting failed for "${TARGET_PRINTER_NAME}": ${e.message}`)
           }
+        } else {
+          try {
+            await execAsync(
+              `powershell -Command "Set-PrintConfiguration -PrinterName '${TARGET_PRINTER_NAME}' -Color $true"`,
+            )
+            logPrint("✅ Post-print: Color mode applied to printer")
+          } catch (e) {
+            logPrint(`⚠️ Post-print color setting failed for "${TARGET_PRINTER_NAME}": ${e.message}`)
+          }
+        }
 
-          // Try to set duplex mode
-          if (doubleSided === "both-sides") {
-            try {
-              await execAsync(
-                `powershell -Command "Set-PrintConfiguration -PrinterName '${printerName}' -DuplexingMode TwoSidedLongEdge"`,
-              )
-              logPrint("✅ Post-print: Duplex mode applied")
-            } catch (e) {
-              logPrint(`⚠️ Post-print duplex setting failed: ${e.message}`)
-            }
+        // Try to set duplex mode
+        if (doubleSided === "both-sides") {
+          try {
+            await execAsync(
+              `powershell -Command "Set-PrintConfiguration -PrinterName '${TARGET_PRINTER_NAME}' -DuplexingMode TwoSidedLongEdge"`,
+            )
+            logPrint("✅ Post-print: Duplex mode applied to printer")
+          } catch (e) {
+            logPrint(`⚠️ Post-print duplex setting failed for "${TARGET_PRINTER_NAME}": ${e.message}`)
+          }
+        } else {
+          try {
+            await execAsync(
+              `powershell -Command "Set-PrintConfiguration -PrinterName '${TARGET_PRINTER_NAME}' -DuplexingMode OneSided"`,
+            )
+            logPrint("✅ Post-print: Single-sided mode applied to printer")
+          } catch (e) {
+            logPrint(`⚠️ Post-print single-sided setting failed for "${TARGET_PRINTER_NAME}": ${e.message}`)
           }
         }
       } catch (e) {
-        logPrint(`⚠️ Post-print configuration failed: ${e.message}`)
+        logPrint(`⚠️ Overall post-print configuration failed for "${TARGET_PRINTER_NAME}": ${e.message}`)
       }
     }
 
@@ -648,10 +663,12 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
     }
 
     if (printSuccess) {
-      logPrint(`✅ PDF print completed using: ${methodUsed} with ${colorMode} mode and ${doubleSided} setting`)
+      logPrint(
+        `✅ PDF print completed for "${TARGET_PRINTER_NAME}" using: ${methodUsed} with ${colorMode} mode and ${doubleSided} setting`,
+      )
       return {
         success: true,
-        message: `PDF printed successfully using ${methodUsed} in ${colorMode} mode with ${doubleSided} setting`,
+        message: `PDF printed successfully to "${TARGET_PRINTER_NAME}" using ${methodUsed} in ${colorMode} mode with ${doubleSided} setting`,
         method: methodUsed,
         copies,
         pageRange,
@@ -659,10 +676,12 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
         doubleSided,
       }
     } else {
-      throw new Error("All PDF print methods failed - check if Adobe Reader or SumatraPDF is installed")
+      throw new Error(
+        `All PDF print methods failed for "${TARGET_PRINTER_NAME}" - ensure Adobe Reader or SumatraPDF is installed and the printer name is correct.`,
+      )
     }
   } catch (error) {
-    logPrint(`❌ Error in PDF printing: ${error.message}`)
+    logPrint(`❌ Error in PDF printing for "${TARGET_PRINTER_NAME}": ${error.message}`)
     return {
       success: false,
       error: error.message,
@@ -673,7 +692,7 @@ ipcMain.handle("print-pdf", async (event, printOptions) => {
 // CANVAS PRINTING - BASED ON PYTHON VERSION
 ipcMain.handle("print-canvas", async (event, canvasData) => {
   try {
-    logPrint(`🖨️ Starting canvas print: ${canvasData?.pageData?.id || ""}`)
+    logPrint(`🖨️ Starting canvas print for "${TARGET_PRINTER_NAME}": ${canvasData?.pageData?.id || ""}`)
 
     const { pageData, colorMode } = canvasData
     if (!pageData || !Array.isArray(pageData.items) || pageData.items.length === 0) {
@@ -819,7 +838,7 @@ ipcMain.handle("print-canvas", async (event, canvasData) => {
     const adobePath = findAdobeReader()
     if (adobePath) {
       try {
-        const adobeCmd = `"${adobePath}" /t "${tempPdfPath}"`
+        const adobeCmd = `"${adobePath}" /t "${tempPdfPath}" "${TARGET_PRINTER_NAME}"`
         await execAsync(adobeCmd)
         await new Promise((resolve) => setTimeout(resolve, 3000))
         printSuccess = true
@@ -835,7 +854,7 @@ ipcMain.handle("print-canvas", async (event, canvasData) => {
       const sumatraPath = findSumatraPDF()
       if (sumatraPath) {
         try {
-          let sumatraCmd = `"${sumatraPath}" -print-to-default "${tempPdfPath}"`
+          let sumatraCmd = `"${sumatraPath}" -print-to "${TARGET_PRINTER_NAME}" "${tempPdfPath}"`
           if (colorMode === "bw") {
             sumatraCmd += ` -print-settings "monochrome"`
           }
@@ -853,7 +872,9 @@ ipcMain.handle("print-canvas", async (event, canvasData) => {
     // Try Windows ShellExecute
     if (!printSuccess) {
       try {
-        const shellCmd = `powershell -Command "Start-Process -FilePath '${tempPdfPath}' -Verb Print -WindowStyle Hidden"`
+        const escapedTempPdfPath = tempPdfPath.replace(/'/g, "''")
+        const escapedPrinterName = TARGET_PRINTER_NAME.replace(/'/g, "''")
+        const shellCmd = `powershell -Command "Start-Process -FilePath '${escapedTempPdfPath}' -Verb PrintTo -ArgumentList '${escapedPrinterName}' -WindowStyle Hidden"`
         await execAsync(shellCmd)
         await new Promise((resolve) => setTimeout(resolve, 3000))
         printSuccess = true
