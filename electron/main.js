@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog, globalShortcut } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
@@ -194,7 +195,7 @@ ipcMain.handle('get-session-files', async (event, sessionId) => {
   try {
     console.log(`🔍 Getting files directly from session folder: ${sessionId}`);
     
-  const baseDir = process.env.FILES_BASE_DIR || path.join('C:', 'Users', 'msrih', 'Downloads', 'eastIT', 'files');
+  const baseDir = process.env.FILES_BASE_DIR;
     const sessionDir = path.join(baseDir, sessionId);
     
     console.log(`📁 Session directory: ${sessionDir}`);
@@ -267,7 +268,7 @@ ipcMain.handle('download-s3-files', async (event, sessionId, s3Files) => {
   try {
     console.log(`📥 Downloading ${s3Files.length} files for session ${sessionId}`);
     
-  const baseDir = process.env.FILES_BASE_DIR || path.join('C:', 'Users', 'msrih', 'Downloads', 'eastIT', 'files');
+  const baseDir = process.env.FILES_BASE_DIR;
     const sessionDir = path.join(baseDir, sessionId);
     
     if (!fs.existsSync(baseDir)) {
