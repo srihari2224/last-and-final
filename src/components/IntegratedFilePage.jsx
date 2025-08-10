@@ -722,7 +722,7 @@ const deletePage = (pageId) => {
 
       // DIRECT PAYMENT WITHOUT ORDER - ENHANCED WITH MOBILE
       const options = {
-        key: "rzp_test_8QyfWw0JDb0BAq", // Your Razorpay key
+        key: "rzp_test_Q9vevdahV0cd1b", // Your Razorpay key
         amount: totalAmount * 100, // Amount in paise
         currency: "INR",
         name: "Print Shop",
