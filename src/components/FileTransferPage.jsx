@@ -260,7 +260,11 @@ const FileTransferPage = () => {
     <div className="file-transfer-page">
       <div className="navbar">
         <div className="nav-content">
-          <div className="nav-title">File Transfer</div>
+          
+          <div class="logo">  
+                    <div class="logo-icon"></div>
+                    <span class="logo-text">INNVERA</span>
+                </div>
           <div className="nav-status">
             <div className="wifi-status">
               <img src={wifiIcon || "/placeholder.svg"} alt="WiFi" className="wifi-icon" />

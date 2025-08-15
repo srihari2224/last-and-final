@@ -35,10 +35,23 @@
   position: relative;
 }
 
-.file-transfer-page .nav-title {
-  font-size: 1.5rem;
+.file-transfer-page .logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-transfer-page .logo-icon {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #0be1f0, #0d6dc2);
+  border-radius: 50%;
+}
+
+.file-transfer-page .logo-text {
+  font-size: 18px;
   font-weight: 600;
-  margin: 0;
+  color: #ededed;
 }
 
 .file-transfer-page .nav-status {
