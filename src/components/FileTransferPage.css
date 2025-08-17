@@ -45,8 +45,8 @@
 
 .file-transfer-page .toggle-btn {
   flex: 1;
-  background:rgb(0, 0, 0);
-  color:#ffffff;
+  background: rgb(0, 0, 0);
+  color: #ffffff;
   border: none;
   padding: 12px 24px;
   font-size: 1rem;
@@ -209,7 +209,6 @@
   margin: -1rem 0 1rem 0;
   color: #000000;
   text-align: center;
-
 }
 
 .file-transfer-page .qr-container {
@@ -673,35 +672,45 @@
 }
 
 .file-transfer-page .modern-next-btn {
-  background: #1976d2;
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  /* in scss with just one variable i can change opacity with rgba(variable, opacity) but in css it's not possible so i have used three seperate variables */
+  /* with hue-rotate color can be changed */
+  --main-color: rgb(46, 213, 115);
+  --main-bg-color: rgba(46, 213, 116, 0.36);
+  --pattern-color: rgba(46, 213, 116, 0.073);
+
+  /* change this rotation value */
+  filter: hue-rotate(0deg);
+
   cursor: pointer;
-  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5rem;
+  background: radial-gradient(circle, var(--main-bg-color) 0%, rgba(0, 0, 0, 0) 95%),
+    linear-gradient(var(--pattern-color) 1px, transparent 1px),
+    linear-gradient(to right, var(--pattern-color) 1px, transparent 1px);
+  background-size: cover, 15px 15px, 15px 15px;
+  background-position: center center, center center, center center;
+  border-image: radial-gradient(circle, var(--main-color) 0%, rgba(0, 0, 0, 0) 100%) 1;
+  border-width: 1px 0 1px 0;
+  color: var(--main-color);
+  padding: 1rem 3rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  transition: background-size 0.2s ease-in-out;
+  border-radius: 0;
   min-width: 120px;
 }
 
 .file-transfer-page .modern-next-btn:hover:not(:disabled) {
-  background: #1565c0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  background-size: cover, 10px 10px, 10px 10px;
+}
+
+.file-transfer-page .modern-next-btn:active {
+  filter: hue-rotate(250deg);
 }
 
 .file-transfer-page .modern-next-btn:disabled {
-  background: #ccc;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Hide old file item styles when using modern cards */
-.file-transfer-page .files-display .modern-files-list ~ .file-item,
-.file-transfer-page .files-display .modern-files-list ~ .selection-controls {
-  display: none;
 }
 
 /* Added product cards styling for paper shop section */
@@ -713,6 +722,7 @@
   height: 100%;
   overflow-y: auto;
   max-height: calc(100vh - 200px);
+  margin-top: 50px;
 }
 
 .file-transfer-page .product-cards-container::-webkit-scrollbar {
@@ -736,7 +746,6 @@
   width: 100%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   transition: 0.3s;
   font-family: "Segoe UI", sans-serif;
   overflow: hidden;
@@ -750,8 +759,8 @@
 }
 
 .file-transfer-page .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
 .file-transfer-page .product-badge {
@@ -766,7 +775,6 @@
   letter-spacing: 1px;
   text-transform: uppercase;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
 
@@ -934,4 +942,515 @@
   .file-transfer-page .product-info {
     padding: 0.75rem;
   }
+}
+
+/* 3D Folder Animation Styles */
+.file-transfer-page .storage-box-blur section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.file-transfer-page .storage-box-blur .file {
+  position: relative;
+  width: 100px; /* reduced from 120px to 100px */
+  height: 67px; /* reduced from 80px to 67px */
+  cursor: pointer;
+  transform-origin: bottom;
+  perspective: 1500px;
+  z-index: 50;
+}
+
+.file-transfer-page .storage-box-blur .work-5 {
+  background-color: #d97706;
+  width: 100%;
+  height: 100%;
+  transform-origin: top;
+  border-radius: 16px;
+  border-top-left-radius: 0;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.file-transfer-page .storage-box-blur .work-5::after {
+  content: "";
+  position: absolute;
+  bottom: 99%;
+  left: 0;
+  width: 33px; /* reduced from 40px to 33px */
+  height: 7px; /* reduced from 8px to 7px */
+  background-color: #d97706;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.file-transfer-page .storage-box-blur .work-5::before {
+  content: "";
+  position: absolute;
+  top: -6px; /* reduced from -7px to -6px */
+  left: 31px; /* adjusted from 37.5px to 31px */
+  width: 7px; /* reduced from 8px to 7px */
+  height: 7px; /* reduced from 8px to 7px */
+  background-color: #d97706;
+  clip-path: polygon(0 35%, 0% 100%, 50% 100%);
+}
+
+.file-transfer-page .storage-box-blur .work-4 {
+  position: absolute;
+  top: 3px; /* reduced from 4px to 3px */
+  left: 3px; /* reduced from 4px to 3px */
+  right: 3px; /* reduced from 4px to 3px */
+  bottom: 3px; /* reduced from 4px to 3px */
+  background-color: #a1a1aa;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  transform-origin: bottom;
+}
+
+.file-transfer-page .storage-box-blur .work-3 {
+  position: absolute;
+  top: 3px; /* reduced from 4px to 3px */
+  left: 3px; /* reduced from 4px to 3px */
+  right: 3px; /* reduced from 4px to 3px */
+  bottom: 3px; /* reduced from 4px to 3px */
+  background-color: #d1d5db;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  transform-origin: bottom;
+}
+
+.file-transfer-page .storage-box-blur .work-2 {
+  position: absolute;
+  top: 3px; /* reduced from 4px to 3px */
+  left: 3px; /* reduced from 4px to 3px */
+  right: 3px; /* reduced from 4px to 3px */
+  bottom: 3px; /* reduced from 4px to 3px */
+  background-color: #e5e7eb;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  transform-origin: bottom;
+}
+
+.file-transfer-page .storage-box-blur .work-1 {
+  position: absolute;
+  bottom: 0;
+  background: linear-gradient(to top, #f59e0b, #fbbf24);
+  width: 100%;
+  height: 65px; /* reduced from 78px to 65px */
+  border-radius: 16px;
+  border-top-right-radius: 0;
+  transition: all 0.3s ease;
+  transform-origin: bottom;
+  display: flex;
+  align-items: flex-end;
+}
+
+.file-transfer-page .storage-box-blur .work-1::after {
+  content: "";
+  position: absolute;
+  bottom: 99%;
+  right: 0;
+  width: 61px; /* reduced from 73px to 61px */
+  height: 7px; /* reduced from 8px to 7px */
+  background-color: #fbbf24;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.file-transfer-page .storage-box-blur .work-1::before {
+  content: "";
+  position: absolute;
+  top: -4px; /* reduced from -5px to -4px */
+  right: 59px; /* adjusted from 71px to 59px */
+  width: 5px; /* reduced from 6px to 5px */
+  height: 5px; /* reduced from 6px to 5px */
+  background-color: #fbbf24;
+  clip-path: polygon(100% 14%, 50% 100%, 100% 100%);
+}
+
+.file-transfer-page .storage-box-blur p {
+  font-size: 1rem; /* reduced from 1.25rem to 1rem */
+  padding-top: 0.75rem; /* reduced from 1rem to 0.75rem */
+  opacity: 0.2;
+  margin: 0;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Fixed hover animations to trigger on storage-box-blur instead of .file */
+.file-transfer-page .storage-box-blur:hover .work-5 {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.file-transfer-page .storage-box-blur:hover .work-4 {
+  transform: rotateX(-20deg);
+}
+
+.file-transfer-page .storage-box-blur:hover .work-3 {
+  transform: rotateX(-30deg);
+}
+
+.file-transfer-page .storage-box-blur:hover .work-2 {
+  transform: rotateX(-38deg);
+}
+
+.file-transfer-page .storage-box-blur:hover .work-1 {
+  transform: rotateX(-46deg) translateY(1px);
+  box-shadow: inset 0 20px 40px #fbbf24, inset 0 -20px 40px #d97706;
+}
+
+/* Added cart basket button and counter styles */
+.file-transfer-page .cart-container {
+  display: flex;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+.file-transfer-page .cart-basket-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-transfer-page .cart-basket-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.file-transfer-page .basket-icon {
+  width: 32px; /* Increased size from 28px to 32px for better visibility */
+  height: 32px;
+  color: white;
+  stroke-width: 2;
+}
+
+.file-transfer-page .cart-counter {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  animation: bounce 0.3s ease;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  80% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Added cart sidebar styles */
+.file-transfer-page .cart-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 480px;
+  border-radius: 24px;
+}
+
+.file-transfer-page .cart-sidebar {
+  width: 400px;
+  height: 55vh;
+  background: rgb(255, 255, 255);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+  border-radius: 24px;
+  
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.file-transfer-page .cart-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-width: 5px;
+  border-color: #000000;
+  padding:3px;
+}
+
+.file-transfer-page .cart-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.file-transfer-page .cart-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.file-transfer-page .cart-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.file-transfer-page .cart-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-transfer-page .cart-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #7f8c8d;
+  gap: 1rem;
+}
+
+.file-transfer-page .empty-cart-icon {
+  width: 64px;
+  height: 64px;
+  opacity: 0.5;
+}
+
+.file-transfer-page .cart-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.file-transfer-page .cart-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  background: #f8f9fa;
+}
+
+.file-transfer-page .cart-item-info {
+  flex: 1;
+}
+
+.file-transfer-page .cart-item-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.file-transfer-page .cart-item-price {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.file-transfer-page .cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0.25rem;
+}
+
+.file-transfer-page .quantity-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.file-transfer-page .quantity-btn:hover {
+  background: #2980b9;
+}
+
+.file-transfer-page .quantity {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.file-transfer-page .cart-item-total {
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 60px;
+  text-align: right;
+}
+
+.file-transfer-page .cart-summary {
+  border-top: 1px solid #e0e0e0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+}
+
+.file-transfer-page .cart-total {
+  margin-bottom: 1.5rem;
+}
+
+.file-transfer-page .total-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.file-transfer-page .total-row.final-total {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e0e0e0;
+  margin-bottom: 0;
+}
+
+.file-transfer-page .cart-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.file-transfer-page .clear-cart-btn {
+  flex: 1;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.file-transfer-page .clear-cart-btn:hover {
+  background: #c0392b;
+}
+
+.file-transfer-page .pay-now-btn {
+  flex: 2;
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.2s ease;
+}
+
+.file-transfer-page .pay-now-btn:hover {
+  background: #229954;
+}
+
+/* Adding floating cart icon styles for content area positioning */
+.file-transfer-page .floating-cart-container {
+  position: fixed;
+  top: 5px;
+  right: 10px;
+  z-index: 1500;
+}
+
+.file-transfer-page .floating-cart-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.file-transfer-page .floating-cart-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+.file-transfer-page .floating-cart-btn .basket-icon {
+  width: 32px;
+  height: 32px;
+  color: #2c3e50;
+}
+
+.file-transfer-page .floating-cart-counter {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  animation: bounce 0.3s ease;
 }
