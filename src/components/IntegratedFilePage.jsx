@@ -999,6 +999,50 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                 </div>
               </div>
 
+
+              <div class="card">
+                <div class="content">
+                  <div class="back">
+                    <div class="back-content">
+                      
+                      <img className="image" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjNzVGQkZEIj48cGF0aCBkPSJNNDgwLTgwcS0yNCAwLTQ2LTl0LTM5LTI2cS0yOS0yOS01MC0zOHQtNjMtOXEtNTAgMC04NS0zNXQtMzUtODVxMC00Mi05LTYzdC0zOC01MHEtMTctMTctMjYtMzl0LTktNDZxMC0yNCA5LTQ2dDI2LTM5cTI5LTI5IDM4LTUwdDktNjNxMC01MCAzNS04NXQ4NS0zNXE0MiAwIDYzLTl0NTAtMzhxMTctMTcgMzktMjZ0NDYtOXEyNCAwIDQ2IDl0MzkgMjZxMjkgMjkgNTAgMzh0NjMgOXE1MCAwIDg1IDM1dDM1IDg1cTAgNDIgOSA2M3QzOCA1MHExNyAxNyAyNiAzOXQ5IDQ2cTAgMjQtOSA0NnQtMjYgMzlxLTI5IDI5LTM4IDUwdC05IDYzcTAgNTAtMzUgODV0LTg1IDM1cS00MiAwLTYzIDl0LTUwIDM4cS0xNyAxNy0zOSAyNnQtNDYgOVptMC04MHE4IDAgMTUuNS0zLjVUNTA4LTE3MnE0MS00MSA3Ny01NS41dDkzLTE0LjVxMTcgMCAyOC41LTExLjVUNzE4LTI4MnEwLTU4IDE0LjUtOTMuNVQ3ODgtNDUycTEyLTEyIDEyLTI4dC0xMi0yOHEtNDEtNDEtNTUuNS03N1Q3MTgtNjc4cTAtMTctMTEuNS0yOC41VDY3OC03MThxLTU4IDAtOTMuNS0xNC41VDUwOC03ODhxLTUtNS0xMi41LTguNVQ0ODAtODAwcS04IDAtMTUuNSAzLjVUNDUyLTc4OHEtNDEgNDEtNzcgNTUuNVQyODItNzE4cS0xNyAwLTI4LjUgMTEuNVQyNDItNjc4cTAgNTgtMTQuNSA5My41VDE3Mi01MDhxLTEyIDEyLTEyIDI4dDEyIDI4cTQxIDQxIDU1LjUgNzd0MTQuNSA5M3EwIDE3IDExLjUgMjguNVQyODItMjQycTU4IDAgOTMuNSAxNC41VDQ1Mi0xNzJxNSA1IDEyLjUgOC41VDQ4MC0xNjBabTEwMC0xNjBxMjUgMCA0Mi41LTE3LjVUNjQwLTM4MHEwLTI1LTE3LjUtNDIuNVQ1ODAtNDQwcS0yNSAwLTQyLjUgMTcuNVQ1MjAtMzgwcTAgMjUgMTcuNSA0Mi41VDU4MC0zMjBabS0yMDItMiAyNjAtMjYwLTU2LTU2LTI2MCAyNjAgNTYgNTZabTItMTk4cTI1IDAgNDIuNS0xNy41VDQ0MC01ODBxMC0yNS0xNy41LTQyLjVUMzgwLTY0MHEtMjUgMC00Mi41IDE3LjVUMzIwLTU4MHEwIDI1IDE3LjUgNDIuNVQzODAtNTIwWm0xMDAgNDBaIi8+PC9zdmc+" />
+                      <strong> flat 10% off</strong>
+                    </div>
+                  </div>
+                  <div class="front">
+                    
+                    <div class="img">
+                      <div class="circle">
+                      </div>
+                      <div class="circle" id="right">
+                      </div>
+                      <div class="circle" id="bottom">
+                      </div>
+                    </div>
+
+                    <div class="front-content">
+                      <small class="badge">Offer upto : 25-SEP-2025</small>
+                      <div class="description">
+                        <div class="title">
+                          <p class="title">
+                              <div class="input-group">
+                              <input placeholder="Enter the code here" type="text" id="input-field" />
+                              <button class="submit-button"><span>APPLY</span></button>
+                            </div>
+                          
+                              
+                          </p>
+                          
+                        </div>
+                        <p class="card-footer">
+                          30 Mins &nbsp; | &nbsp; 1 Serving
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="mobile-input-section">
                 <label className="mobile-input-label" htmlFor="mobile-number">
                   Mobile Number *

@@ -8,6 +8,8 @@ import sessionIcon from "../assets/session.svg"
 import wifiIcon from "../assets/wifi.svg"
 import IntegratedFilePage from "./IntegratedFilePage"
 
+import videoAdSrc from "../assets/1_video_1.mp4"
+
 const FileTransferPage = () => {
   const navigate = useNavigate()
   const [sessionId, setSessionId] = useState("")
@@ -671,6 +673,17 @@ const FileTransferPage = () => {
           </div>
         </div>
       )}
+
+      <div className="video_ad">
+        <video
+          className="video_ad_player"
+          src={videoAdSrc}
+          autoPlay
+          loop
+          muted
+          playsInline
+        ></video>
+      </div>
 
       {/* Integrated FilePage Section - 75% width - FIXED GAPS */}
       {showIntegratedView && activeSection === "session" && (
