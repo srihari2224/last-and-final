@@ -188,14 +188,25 @@
   border: 1px solid rgba(231, 76, 60, 0.3);
 }
 
-.file-transfer-page .time-display {
-  font-family: "Courier New", monospace;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+
+/* Modern Clock Styles for Nav Bar */
+.file-transfer-page .nav-clock {
+  font-family: 'Share Tech Mono', monospace;
+  color: #daf6ff;
+  text-align: center;
+  position: relative;
+  left: 0;
+  top: 0;
+  transform: none;
+  text-shadow: 0 0 20px rgba(10, 175, 230, 1), 0 0 20px rgba(10, 175, 230, 0);
+  margin: 0 1rem;
   order: 1;
+}
+.file-transfer-page .nav-clock .time {
+  letter-spacing: 0.05em;
+  font-size: 1.5rem;
+  padding: 2px 0;
+  margin: 0;
 }
 
 /* QR Code Section - Top of container */
@@ -1474,3 +1485,17 @@
   border-radius: 20px;
 }
 
+
+
+.file-transfer-page .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  order: 2;
+}
+
+.file-transfer-page .navi_moto {
+  width: 5px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+}

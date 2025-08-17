@@ -9,15 +9,29 @@ import wifiIcon from "../assets/wifi.svg"
 import IntegratedFilePage from "./IntegratedFilePage"
 
 import videoAdSrc from "../assets/1_video_1.mp4"
+import videoAdsec2 from "../assets/2_video_1.mp4"
+import videoAdsec3 from "../assets/3_video_1.mp4"
+
+import navimoto from "../assets/moto.png"
 
 const FileTransferPage = () => {
+  // ...existing code...
+  // Video playlist logic
+  const videoSources = [videoAdSrc, videoAdsec2, videoAdsec3];
+  const [currentVideoIdx, setCurrentVideoIdx] = useState(0);
+  const handleVideoEnd = () => {
+    setCurrentVideoIdx((prev) => (prev + 1) % videoSources.length);
+  };
   const navigate = useNavigate()
   const [sessionId, setSessionId] = useState("")
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  // Remove old time state
+  // const [currentTime, setCurrentTime] = useState(new Date())
+  // New clock state
+  const [clockTime, setClockTime] = useState("")
   const [showFiles, setShowFiles] = useState(false)
   const [showIntegratedView, setShowIntegratedView] = useState(false)
   const [activeSection, setActiveSection] = useState("session")
@@ -313,15 +327,26 @@ const FileTransferPage = () => {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
-  }
+
+  // Modern digital clock logic
+  useEffect(() => {
+    function zeroPadding(num, digit) {
+      let zero = '';
+      for (let i = 0; i < digit; i++) zero += '0';
+      return (zero + num).slice(-digit);
+    }
+    function updateTime() {
+      const cd = new Date();
+      setClockTime(
+        zeroPadding(cd.getHours(), 2) + ':' +
+        zeroPadding(cd.getMinutes(), 2) + ':' +
+        zeroPadding(cd.getSeconds(), 2)
+      );
+    }
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleStorageBoxClick = () => {
     if (!showFiles) {
@@ -357,13 +382,25 @@ const FileTransferPage = () => {
             <span class="logo-text">INNVERA</span>
           </div>
           <div className="nav-status">
+
+            <div className="nav-logo" style={{ display: "flex", alignItems: "center", height: "48px", padding: "0 8px" }}>
+              <img
+                src={navimoto}
+                alt="Logo"
+                className="navi-moto"
+                style={{ height: "40px", width: "auto", maxWidth: "120px", objectFit: "contain", display: "block" }}
+              />
+            </div>
+            
             <div className="wifi-status">
               <img src={wifiIcon || "/placeholder.svg"} alt="WiFi" className="wifi-icon" />
               <span className={`status-text ${isOnline ? "online" : "offline"}`}>
                 {isOnline ? "Online" : "Offline"}
               </span>
             </div>
-            <div className="time-display">{formatTime(currentTime)}</div>
+            <div id="clock" className="nav-clock">
+              <p className="time">{clockTime}</p>
+            </div>
             {showIntegratedView && (
               <button
                 onClick={handleBackToSelection}
@@ -677,11 +714,12 @@ const FileTransferPage = () => {
       <div className="video_ad">
         <video
           className="video_ad_player"
-          src={videoAdSrc}
+          src={videoSources[currentVideoIdx]}
           autoPlay
-          loop
           muted
           playsInline
+          onEnded={handleVideoEnd}
+          key={currentVideoIdx} // force reload on source change
         ></video>
       </div>
 
