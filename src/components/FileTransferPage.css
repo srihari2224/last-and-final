@@ -39,9 +39,9 @@
   border-bottom: 1px solid #ffffff;
   border-right: 1px solid #ffffff;
   border-radius: 5px;
-  
+
   margin-top: 7px;
-  margin-left:22px;
+  margin-left: 22px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -95,13 +95,13 @@
   position: fixed;
   right: 0;
   top: 62px; /* Align with navbar bottom - no gap */
-  width:1550px;
-  height: 100vh ; /* Full height from navbar bottom */
+  width: 1550px;
+  height: 100vh; /* Full height from navbar bottom */
   background: #ffffff;
   color: #000000;
-  overflow:hidden;
-  margin-left:480px;
-  padding:0px;
+  overflow: hidden;
+  margin-left: 474px;
+  padding: 0px;
   box-sizing: border-box;
 }
 
@@ -188,10 +188,9 @@
   border: 1px solid rgba(231, 76, 60, 0.3);
 }
 
-
 /* Modern Clock Styles for Nav Bar */
 .file-transfer-page .nav-clock {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: "Share Tech Mono", monospace;
   color: #daf6ff;
   text-align: center;
   position: relative;
@@ -1192,9 +1191,17 @@
   background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
   display: flex;
-  justify-content: flex-end;
-  padding-top: 480px;
-  border-radius: 24px;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.file-transfer-page .modern-cart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .file-transfer-page .cart-sidebar {
@@ -1467,26 +1474,6 @@
   animation: bounce 0.3s ease;
 }
 
-.file-transfer-page .video_ad{
-  width:1600px;
-  height:1080px;
-  margin-top:67px;
-  margin-left: 450px;
-  background-color:#ffffff;
-
-
-}
-
-
-.file-transfer-page .video_ad_player{
-  position:fixed; 
-  width:1600px;
-  height:1080px;
-  border-radius: 20px;
-}
-
-
-
 .file-transfer-page .nav-logo {
   display: flex;
   align-items: center;
@@ -1498,4 +1485,514 @@
   width: 5px;
   height: 20px;
   filter: brightness(0) invert(1);
+}
+
+/* Unified cart styling instead of separate cards */
+.file-transfer-page .unified-cart {
+  width: 350px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.file-transfer-page .cart-header-modern {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 15px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.file-transfer-page .cart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.file-transfer-page .cart-close-btn-modern {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-transfer-page .cart-close-btn-modern:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.file-transfer-page .cart-items-section {
+  padding: 0 20px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.file-transfer-page .cart-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f8fafc;
+  gap: 12px;
+}
+
+.file-transfer-page .cart-item:last-child {
+  border-bottom: none;
+}
+
+.file-transfer-page .item-icon {
+  flex-shrink: 0;
+}
+
+.file-transfer-page .item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-transfer-page .item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.file-transfer-page .item-category {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.file-transfer-page .item-price {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.file-transfer-page .item-quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.file-transfer-page .qty-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-transfer-page .qty-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.file-transfer-page .qty-number {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  min-width: 20px;
+  text-align: center;
+}
+
+.file-transfer-page .item-total {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  min-width: 60px;
+  text-align: right;
+}
+
+.file-transfer-page .mobile-input-section {
+  padding: 15px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.file-transfer-page .mobile-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.file-transfer-page .mobile-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.file-transfer-page .mobile-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.file-transfer-page .printing-progress-section {
+  padding: 15px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.file-transfer-page .progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.file-transfer-page .progress-job {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.file-transfer-page .progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.file-transfer-page .progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.file-transfer-page .progress-status {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.file-transfer-page .checkout-section {
+  padding: 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.file-transfer-page .checkout-details {
+  margin-bottom: 15px;
+}
+
+.file-transfer-page .detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.file-transfer-page .detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.file-transfer-page .total-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.file-transfer-page .checkout-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.file-transfer-page .clear-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.file-transfer-page .clear-btn:hover {
+  background: #dc2626;
+}
+
+.file-transfer-page .pay-btn {
+  flex: 2;
+  padding: 12px 16px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.file-transfer-page .pay-btn:hover {
+  background: #16a34a;
+}
+
+.file-transfer-page .cart-empty-modern {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #64748b;
+  gap: 12px;
+}
+
+.file-transfer-page .empty-cart-icon-modern {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  .file-transfer-page .card {
+    width: 300px; /* Reduced from 350px */
+  }
+
+  .file-transfer-page .input_field {
+    width: 270px; /* Reduced from 320px */
+  }
+
+  .file-transfer-page .checkout--footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .file-transfer-page .checkout-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .file-transfer-page .clear-cart-btn-modern,
+  .file-transfer-page .checkout-btn {
+    flex: 1;
+  }
+}
+
+.file-transfer-page .video_ad {
+  display: flex;
+  flex-direction: column;
+  width: 1600px;
+  height: 1580px;
+  margin-top: 67px;
+  margin-left: 450px;
+  background-color: #ffffff;
+}
+
+.file-transfer-page .video_ad_player {
+  position: absolute;
+  width: 1660px;
+  height: 1080px;
+  border-radius: 20px;
+  margin-left: -34px;
+}
+
+/* Added video scroll indicator overlay */
+.file-transfer-page .video-scroll-indicator {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px 25px;
+  border-radius: 30px;
+  backdrop-filter: blur(15px);
+  animation: pulse-indicator 2s infinite;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.file-transfer-page .video-scroll-arrow {
+  margin-bottom: 10px;
+}
+
+.file-transfer-page .video-scroll-text {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Modified image container for side-by-side image display */
+.file-transfer-page .img_container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0px;
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 1570px;
+  height: 500px;
+  margin-top: 1090px;
+  margin-left: 11px;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+/* Updated image styling for side-by-side layout */
+.file-transfer-page .img_container img {
+  width: 520px;
+  height: 400px;
+  object-fit: cover;
+  transition: all 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+  opacity: 1;
+  transform: scale(0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced active image styling */
+.file-transfer-page .img_container img.active {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Updated navigation indicators positioning */
+
+
+.file-transfer-page .nav-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+/* Added active dot styling */
+.file-transfer-page .nav-dot.active {
+  background: #007bff;
+  transform: scale(1.2);
+}
+
+/* Added image scroll indicator for vertical scrolling */
+.file-transfer-page .image-scroll-indicator {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 15px 20px;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.file-transfer-page .vertical-scroll-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.file-transfer-page .arrow-up,
+.file-transfer-page .arrow-down {
+  width: 0;
+  height: 0;
+  margin: 2px 0;
+}
+
+.file-transfer-page .arrow-up {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid rgba(255, 255, 255, 0.8);
+  animation: bounce-up 1.5s infinite;
+}
+
+.file-transfer-page .arrow-down {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid rgba(255, 255, 255, 0.8);
+  animation: bounce-down 1.5s infinite;
+}
+
+.file-transfer-page .vertical-scroll-text {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Added bounce animations for scroll arrows */
+@keyframes bounce-up {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes bounce-down {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(4px);
+  }
+  60% {
+    transform: translateY(2px);
+  }
+}
+
+/* Enhanced pulse animation for video scroll indicator */
+@keyframes pulse-indicator {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.8;
+  }
 }
