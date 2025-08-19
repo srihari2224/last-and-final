@@ -47,6 +47,10 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const [fileDataCache, setFileDataCache] = useState({})
   const [fileDataReady, setFileDataReady] = useState(false)
 
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponError, setCouponError] = useState("")
+
   // Categorize files
   const fileCategories = {
     images: files.filter((file) => {
@@ -435,15 +439,38 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
   const removeFromQueue = (itemId) => setPrintQueue(printQueue.filter((item) => item.id !== itemId))
 
+  const validateCoupon = () => {
+    const validCoupons = [
+      import.meta.env.VITE_CODE_1 || "4536",
+      import.meta.env.VITE_CODE_2 || "0566",
+      import.meta.env.VITE_CODE_3 || "8536",
+    ]
+
+    if (validCoupons.includes(couponCode)) {
+      setAppliedCoupon(couponCode)
+      setCouponError("")
+    } else {
+      setCouponError("Invalid coupon code")
+    }
+  }
+
   const calculateTotalCost = () => {
-    let totalCost = 0
-    pages.forEach((page) => {
-      if (page.items.length > 0) {
-        totalCost += page.colorMode === "color" ? 10 : 2
-      }
-    })
-    printQueue.forEach((item) => (totalCost += item.cost))
-    return totalCost
+    const baseCost =
+      pages.reduce((total, page) => {
+        if (page.items.length === 0) return total
+        return total + (page.colorMode === "color" ? 10 : 2)
+      }, 0) + printQueue.reduce((total, item) => total + item.cost, 0)
+
+    return baseCost
+  }
+
+  const calculateDiscountedTotal = () => {
+    const originalCost = calculateTotalCost()
+    if (appliedCoupon) {
+      const discount = Math.round(originalCost * 0.1)
+      return { originalCost, discount, finalCost: originalCost - discount }
+    }
+    return { originalCost, discount: 0, finalCost: originalCost }
   }
 
   const validateMobileNumber = (number) => /^[6-9]\d{9}$/.test(number)
@@ -457,7 +484,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
   // PAYMENT AND SILENT PRINTING WITH USER OPTIONS
   const handlePaymentClick = async () => {
-    const totalAmount = calculateTotalCost()
+    const totalAmount = calculateDiscountedTotal().finalCost
     if (totalAmount === 0) return
 
     if (!mobileNumber) {
@@ -671,6 +698,8 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  const [currentView, setCurrentView] = useState("canvas")
 
   return (
     <div className="integrated-files-page">
@@ -990,57 +1019,53 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
             </div>
           </div>
 
+          <div className="coupon-section">
+            <div className="coupon-input-container">
+              <input
+                type="text"
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value)
+                  setCouponError("")
+                }}
+                className="coupon-input"
+                maxLength={4}
+              />
+              <button onClick={validateCoupon} className="apply-coupon-btn" disabled={!couponCode}>
+                Apply
+              </button>
+            </div>
+            {couponError && <div className="coupon-error">{couponError}</div>}
+            {appliedCoupon && <div className="coupon-success">Coupon applied successfully 🎉🎊</div>}
+          </div>
+
           <div className="payment-floating-container">
             <div className="payment-box">
               <div className="payment-summary">
-                <div className="payment-total">
-                  <span>Total:</span>
-                  <span>₹{calculateTotalCost()}</span>
-                </div>
-              </div>
-
-
-              <div class="card">
-                <div class="content">
-                  <div class="back">
-                    <div class="back-content">
-                      
-                      <img className="image" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjNzVGQkZEIj48cGF0aCBkPSJNNDgwLTgwcS0yNCAwLTQ2LTl0LTM5LTI2cS0yOS0yOS01MC0zOHQtNjMtOXEtNTAgMC04NS0zNXQtMzUtODVxMC00Mi05LTYzdC0zOC01MHEtMTctMTctMjYtMzl0LTktNDZxMC0yNCA5LTQ2dDI2LTM5cTI5LTI5IDM4LTUwdDktNjNxMC01MCAzNS04NXQ4NS0zNXE0MiAwIDYzLTl0NTAtMzhxMTctMTcgMzktMjZ0NDYtOXEyNCAwIDQ2IDl0MzkgMjZxMjkgMjkgNTAgMzh0NjMgOXE1MCAwIDg1IDM1dDM1IDg1cTAgNDIgOSA2M3QzOCA1MHExNyAxNyAyNiAzOXQ5IDQ2cTAgMjQtOSA0NnQtMjYgMzlxLTI5IDI5LTM4IDUwdC05IDYzcTAgNTAtMzUgODV0LTg1IDM1cS00MiAwLTYzIDl0LTUwIDM4cS0xNyAxNy0zOSAyNnQtNDYgOVptMC04MHE4IDAgMTUuNS0zLjVUNTA4LTE3MnE0MS00MSA3Ny01NS41dDkzLTE0LjVxMTcgMCAyOC41LTExLjVUNzE4LTI4MnEwLTU4IDE0LjUtOTMuNVQ3ODgtNDUycTEyLTEyIDEyLTI4dC0xMi0yOHEtNDEtNDEtNTUuNS03N1Q3MTgtNjc4cTAtMTctMTEuNS0yOC41VDY3OC03MThxLTU4IDAtOTMuNS0xNC41VDUwOC03ODhxLTUtNS0xMi41LTguNVQ0ODAtODAwcS04IDAtMTUuNSAzLjVUNDUyLTc4OHEtNDEgNDEtNzcgNTUuNVQyODItNzE4cS0xNyAwLTI4LjUgMTEuNVQyNDItNjc4cTAgNTgtMTQuNSA5My41VDE3Mi01MDhxLTEyIDEyLTEyIDI4dDEyIDI4cTQxIDQxIDU1LjUgNzd0MTQuNSA5M3EwIDE3IDExLjUgMjguNVQyODItMjQycTU4IDAgOTMuNSAxNC41VDQ1Mi0xNzJxNSA1IDEyLjUgOC41VDQ4MC0xNjBabTEwMC0xNjBxMjUgMCA0Mi41LTE3LjVUNjQwLTM4MHEwLTI1LTE3LjUtNDIuNVQ1ODAtNDQwcS0yNSAwLTQyLjUgMTcuNVQ1MjAtMzgwcTAgMjUgMTcuNSA0Mi41VDU4MC0zMjBabS0yMDItMiAyNjAtMjYwLTU2LTU2LTI2MCAyNjAgNTYgNTZabTItMTk4cTI1IDAgNDIuNS0xNy41VDQ0MC01ODBxMC0yNS0xNy41LTQyLjVUMzgwLTY0MHEtMjUgMC00Mi41IDE3LjVUMzIwLTU4MHEwIDI1IDE3LjUgNDIuNVQzODAtNTIwWm0xMDAgNDBaIi8+PC9zdmc+" />
-                      <strong> flat 10% off</strong>
+                {appliedCoupon ? (
+                  <>
+                    <div className="payment-breakdown">
+                      <div className="payment-line">
+                        <span>Cost Estimated:</span>
+                        <span>₹{calculateDiscountedTotal().originalCost}</span>
+                      </div>
+                      <div className="payment-line discount">
+                        <span>Discount (10%):</span>
+                        <span>-₹{calculateDiscountedTotal().discount}</span>
+                      </div>
+                      <div className="payment-total">
+                        <span>Total Pay:</span>
+                        <span>₹{calculateDiscountedTotal().finalCost}</span>
+                      </div>
                     </div>
+                  </>
+                ) : (
+                  <div className="payment-total">
+                    <span>Total Pay:</span>
+                    <span>₹{calculateTotalCost()}</span>
                   </div>
-                  <div class="front">
-                    
-                    <div class="img">
-                      <div class="circle">
-                      </div>
-                      <div class="circle" id="right">
-                      </div>
-                      <div class="circle" id="bottom">
-                      </div>
-                    </div>
-
-                    <div class="front-content">
-                      <small class="badge">Offer upto : 25-SEP-2025</small>
-                      <div class="description">
-                        <div class="title">
-                          <p class="title">
-                              <div class="input-group">
-                              <input placeholder="Enter the code here" type="text" id="input-field" />
-                              <button class="submit-button"><span>APPLY</span></button>
-                            </div>
-                          
-                              
-                          </p>
-                          
-                        </div>
-                        <p class="card-footer">
-                          30 Mins &nbsp; | &nbsp; 1 Serving
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="mobile-input-section">

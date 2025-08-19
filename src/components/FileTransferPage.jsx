@@ -1,3 +1,5 @@
+import pdf from "../assets/pdf.svg"
+import image from "../assets/img.svg"
 "use client"
 
 import { useState, useEffect } from "react"
@@ -681,6 +683,7 @@ const FileTransferPage = () => {
             <div id="clock" className="nav-clock">
               <p className="time">{clockTime}</p>
             </div>
+            
           </div>
         </div>
       </div>
@@ -760,7 +763,20 @@ const FileTransferPage = () => {
                   </div>
 
                   {loading ? (
-                    <div className="loading-state">Loading files...</div>
+                    <div className="card">
+                      
+                      <div class="loader">
+                        <p>loading</p>
+                        <div class="words">
+                          <span class="word">buttons</span>
+                          <span class="word">forms</span>
+                          <span class="word">switches</span>
+                          <span class="word">cards</span>
+                          <span class="word">buttons</span>
+                        </div>
+                      </div>
+
+                    </div>
                   ) : files.length === 0 ? (
                     <div className="empty-state">No files found in session folder</div>
                   ) : (
@@ -776,35 +792,11 @@ const FileTransferPage = () => {
                               <div className="file-icon-container">
                                 {isPdf ? (
                                   <div className="pdf-icon">
-                                    <svg
-                                      width="32"
-                                      height="32"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                    >
-                                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                      <polyline points="14,2 14,8 20,8" />
-                                      <line x1="16" y1="13" x2="8" y2="13" />
-                                      <line x1="16" y1="17" x2="8" y2="17" />
-                                      <polyline points="10,9 9,9 8,9" />
-                                    </svg>
+                                    <img src={pdf} alt="PDF" style={{ width: 32, height: 32, objectFit: 'contain', display: 'block' }} />
                                   </div>
                                 ) : (
                                   <div className="image-icon">
-                                    <svg
-                                      width="32"
-                                      height="32"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                    >
-                                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                      <circle cx="8.5" cy="8.5" r="1.5" />
-                                      <polyline points="21,15 16,10 5,21" />
-                                    </svg>
+                                    <img src={image} alt="Image" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block' }} />
                                   </div>
                                 )}
                               </div>
@@ -1110,14 +1102,7 @@ const FileTransferPage = () => {
 
       <div className="video_ad">
         {/* Video scroll indicator overlay */}
-        {showScrollIndicator && (
-          <div className="video-scroll-indicator">
-            <div className="video-scroll-arrow">
-              <div className="arrow-down"></div>
-            </div>
-            <span className="video-scroll-text">Scroll down to explore</span>
-          </div>
-        )}
+        
 
         <div class="video_container">
           <video

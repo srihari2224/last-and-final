@@ -56,7 +56,7 @@
   border-right: 1px solid rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   height: 100%;
-  margin: 0;
+  margin-left: 10px;
   padding: 0;
 }
 
@@ -720,15 +720,20 @@
   flex-direction: column;
 }
 
+/* Fixed cost-summary div with proper overflow and fixed height */
 .integrated-files-page .cost-summary {
   background-color: #ffffff;
-  padding: 18px;
+  padding: 18px 18px 40px;
+  padding-bottom: 20px;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   margin: 0;
-  height: 500px;
-  overflow: scroll;
+  height: 413px;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
 }
 
 .integrated-files-page .cost-summary h4 {
@@ -742,7 +747,7 @@
 .integrated-files-page .cost-details {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0px;
   margin-top: 14px;
 }
 
@@ -751,10 +756,10 @@
 }
 
 .integrated-files-page .cost-section h5 {
-  font-size: 17px;
-  font-weight: 350;
-  margin-bottom: 10px;
-  color: #000000;
+  font-size: 23px;
+  font-weight: 400;
+  margin-bottom: 3px;
+  color: #28a745;
   letter-spacing: -0.1px;
 }
 
@@ -764,7 +769,7 @@
   align-items: flex-start;
   font-size: 13px;
   margin-bottom: 8px;
-  padding: 8px 0;
+  padding: 3px 0;
   color: #000000;
 }
 
@@ -786,14 +791,100 @@
   justify-content: space-between;
   align-items: center;
   font-weight: 700;
-  font-size: 15px;
-  margin-top: 14px;
-  padding: 14px 18px;
+  font-size:18px;
+  margin-top: 283px;
+  padding: 15px 140px;
   border-top: 2px solid rgba(0, 0, 0, 0.1);
   background-color: #28a745;
   color: #ffffff;
-  border-radius: 12px;
+  border-radius:0px 0px 12px 12px;
   letter-spacing: -0.3px;
+  position: fixed;
+  margin-left:-18px;
+}
+
+/* Added coupon section styles */
+.coupon-section {
+  background-color: #ffffff;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin: 15px 0;
+}
+
+.coupon-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.coupon-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.coupon-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.apply-coupon-btn {
+  padding: 12px 24px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.apply-coupon-btn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.apply-coupon-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.coupon-error {
+  color: #dc3545;
+  font-size: 18px;
+  margin-top: 8px;
+  font-size:500px;
+}
+
+.coupon-success {
+  color: #218838 ;
+  font-size: 20px;
+  margin-top: 8px;
+  margin-left:5px;
+}
+
+/* Updated payment breakdown styles */
+.payment-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.payment-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  color: #000000;
+}
+
+.payment-line.discount {
+  color: #28a745;
+  font-weight: 600;
 }
 
 /* ENHANCED PAYMENT SECTION WITH MOBILE NUMBER */
@@ -810,7 +901,7 @@
   padding: 18px;
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  margin: 0;
+  margin: -18px;
 }
 
 .integrated-files-page .payment-summary {
@@ -843,10 +934,10 @@
 
 .integrated-files-page .mobile-input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 115px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 25px;
   background-color: #ffffff;
   color: #000000;
   box-sizing: border-box;
@@ -1245,244 +1336,144 @@
   }
 }
 
-
-
-.card {
-  overflow: visible;
-  width: 250px;
-  height: 334px;
-  margin-bottom: -150px;;
-}
-
-.image{
-  height:100px;
-  width:400px;
-  margin-bottom:-20px;
-}
-
-.content {
-  width: 150%;
-  height: 50%;
-  transform-style: preserve-3d;
-  transition: transform 300ms;
-  border-radius: 5px;
-}
-
-.front, .back {
-  background-color: #151515;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.back {
-  width: 100%;
-  height: 100%;
-  justify-content: center;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.back::before {
-  position: absolute;
-  content: ' ';
-  display: block;
-  width: 160px;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, #ff9966, #ff9966, #ff9966, #ff9966, transparent);
-  animation: rotation_481 5000ms infinite linear;
-}
-
-.back-content {
-  position: absolute;
-  width: 99%;
-  height: 99%;
-  background-color: #151515;
-  border-radius: 5px;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-}
-
-.card:hover .content {
-  transform: rotateY(180deg);
-}
-
-@keyframes rotation_481 {
-  0% {
-    transform: rotateZ(0deg);
-  }
-
-  0% {
-    transform: rotateZ(360deg);
-  }
-}
-
-.front {
-  transform: rotateY(180deg);
-  color: white;
-}
-
-.front .front-content {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.front-content .badge {
-  background-color: #00000055;
-  padding: 2px 10px;
-  border-radius: 10px;
-  backdrop-filter: blur(2px);
-  width: fit-content;
-}
-
-.description {
-  box-shadow: 0px 0px 10px 5px #00000088;
-  width: 100%;
-  padding: 10px;
-  background-color: #00000099;
-  backdrop-filter: blur(5px);
-  border-radius: 5px;
-}
-
-.title {
-  font-size: 19px;
-  max-width: 100%;
-  display: flex;
-  justify-content: space-between;
-}
-
-.title p {
-  width: 50%;
-}
-
-.card-footer {
-  color: #ffffff88;
-  margin-top: 5px;
-  font-size: 8px;
-}
-
-.front .img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.circle {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background-color: #ffbb66;
+/* Modern next button */
+.next-button-modern {
   position: relative;
-  filter: blur(15px);
-  animation: floating 2600ms infinite linear;
-}
-
-#bottom {
-  background-color: #ff8866;
-  left: 50px;
-  top: 0px;
-  width: 150px;
-  height: 150px;
-  animation-delay: -800ms;
-}
-
-#right {
-  background-color: #ff2233;
-  left: 160px;
-  top: -80px;
-  width: 30px;
-  height: 30px;
-  animation-delay: -1800ms;
-}
-
-
-.input-group {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: #0ea5e9;
+  padding: 8px;
   display: flex;
-  flex-direction: row;
-  margin: 0 auto;
   justify-content: center;
-  max-width: 160px;
-  margin-left:70px;
-  margin-bottom:20px;
-}
-
-.submit-button {
-  font-size: 17px;
-  padding: 0.5em 2em;
-  border: transparent;
-  box-shadow: 0 12px 16px 0 rgba(0, 0, 0, 0.24);
-  background: #ffffff;
-  border-radius: 0 10px 10px 0;
-  transition: 0.3s;
-}
-
-.submit-button:hover {
-  transition: 0.3s;
-  background: linear-gradient(90deg, #FC466B 0%, #3F5EFB 100%);
-  cursor: pointer;
-}
-
-.submit-button:active {
-  transform: translate(0em, 0.2em);
-}
-
-.submit-button span {
+  align-items: center;
   font-weight: 800;
-  letter-spacing: 2px;
-  background: linear-gradient(90deg, #FC466B 0%, #3F5EFB 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: 0.3s;
+  height: 56px;
+  width: 224px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.5s ease;
+  margin: 15px auto 0;
 }
 
-.submit-button:hover span {
-  background: #2E2E2E;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: 0.3s;
+.next-button-modern:hover {
+  border-color: #0284c7;
 }
 
-#input-field {
-  background-color: #ffffff;
-  border-radius: 0px;
+.next-button-circle {
+  position: absolute;
+  border-radius: 50%;
+  transition: transform 0.5s ease-in-out;
+  z-index: 10;
+}
 
-  width: 300px;
-  padding-left: 8px;
-  color: rgb(0, 0, 0);
+.next-circle-1 {
+  width: 192px;
+  height: 192px;
+  background-color: #0c4a6e;
+  transition-delay: 150ms;
+}
+
+.next-circle-2 {
+  width: 160px;
+  height: 160px;
+  background-color: #0ea5e9;
+  transition-delay: 100ms;
+}
+
+.next-circle-3 {
+  width: 128px;
+  height: 128px;
+  background-color: #0284c7;
+  transition-delay: 150ms;
+}
+
+.next-circle-4 {
+  width: 96px;
+  height: 96px;
+  background-color: #0369a1;
+  transition-delay: 200ms;
+}
+
+.next-circle-5 {
+  width: 64px;
+  height: 64px;
+  background-color: #0ea5e9;
+  transition-delay: 300ms;
+}
+
+.next-button-modern:hover .next-button-circle {
+  transform: scale(1.5);
+}
+
+.next-button-modern:hover .next-circle-1 {
+  transition-delay: 75ms;
+}
+
+.next-button-modern:hover .next-circle-2 {
+  transition-delay: 100ms;
+}
+
+.next-button-modern:hover .next-circle-3 {
+  transition-delay: 150ms;
+}
+
+.next-button-modern:hover .next-circle-4 {
+  transition-delay: 200ms;
+}
+
+.next-button-modern:hover .next-circle-5 {
+  transition-delay: 300ms;
+}
+
+.next-button-text {
+  z-index: 10;
+  color: #f0f9ff;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Removed img_container scroll effects, added hover transitions */
+.img_container img {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.img_container img:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+/* Added scroll indicator for video container */
+.video_container {
+  position: relative;
+}
+
+.video-scroll-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
   font-size: 14px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  z-index: 10;
+  animation: bounce 2s infinite;
 }
 
-::placeholder {
-  color: rgb(184, 184, 184);
-}
-
-@keyframes floating {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(10px);
-  }
-
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
   100% {
-    transform: translateY(0px);
+    transform: translateX(-50%) translateY(0);
+  }
+  40% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+  60% {
+    transform: translateX(-50%) translateY(-5px);
   }
 }
