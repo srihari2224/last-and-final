@@ -1,6 +1,6 @@
 import pdf from "../assets/pdf.svg"
 import image from "../assets/img.svg"
-"use client"
+;("use client")
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -35,24 +35,23 @@ import margin from "../assets/margin.png"
 import shop from "../assets/shop.svg"
 
 const FileTransferPage = () => {
-  // ...existing code...
-  // Video playlist logic
   const videoSources = [videoAdSrc, videoAdsec2, videoAdsec3]
   const [currentVideoIdx, setCurrentVideoIdx] = useState(0)
   const [currentImageSet, setCurrentImageSet] = useState(0)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showScrollIndicator, setShowScrollIndicator] = useState(true)
   const [hasScrolledToImages, setHasScrolledToImages] = useState(false)
-  const [isInImageContainer, setIsInImageContainer] = useState(false)
+  const [showCouponCard, setShowCouponCard] = useState(false)
+  const [couponImageIndex, setCouponImageIndex] = useState(0) // Which image has the coupon
+  const [couponFound, setCouponFound] = useState(false) // Whether coupon was found in current position
+  const [selectedCouponVideos, setSelectedCouponVideos] = useState([]) // Which videos have coupons
+  const [couponImageIndices, setCouponImageIndices] = useState({}) // Which image has coupon for each video
+  const [hoverTimeout, setHoverTimeout] = useState(null) // Timeout for 1.2 second hover delay
   const navigate = useNavigate()
   const [sessionId, setSessionId] = useState("")
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
-  // Remove old time state
-  // const [currentTime, setCurrentTime] = useState(new Date())
-  // New clock state
   const [clockTime, setClockTime] = useState("")
   const [showFiles, setShowFiles] = useState(false)
   const [showIntegratedView, setShowIntegratedView] = useState(false)
@@ -141,7 +140,6 @@ const FileTransferPage = () => {
     setCartItems([])
   }
 
-  // Generate unique session ID with format {Adjective}{Animal}{Number}
   const generateUniqueSessionId = () => {
     const adjectives = [
       "Fuzzy",
@@ -218,23 +216,55 @@ const FileTransferPage = () => {
     return `${randomAdjective}${randomAnimal}${randomNumber}`
   }
 
+  const generateSessionCouponCode = (sessionId) => {
+    if (!sessionId) return "0000"
+
+    // Create a simple hash from session ID
+    let hash = 0
+    for (let i = 0; i < sessionId.length; i++) {
+      const char = sessionId.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+
+    // Convert to positive 4-digit number
+    const fourDigitCode = Math.abs(hash % 9000) + 1000
+    return fourDigitCode.toString()
+  }
+
   const handleVideoEnd = () => {
     setCurrentVideoIdx((prevIdx) => (prevIdx + 1) % videoSources.length)
     setCurrentImageSet((prevIdx) => (prevIdx + 1) % videoSources.length)
   }
 
   useEffect(() => {
-    // Generate unique session ID with new format
+    window.scrollTo({ top: 0, behavior: "instant" })
+
     const newSessionId = generateUniqueSessionId()
     setSessionId(newSessionId)
     console.log("🆔 Generated session ID:", newSessionId)
 
-    // Use the S3 domain for scan.html
+    const totalVideos = videoSources.length
+    const couponVideoCount = totalVideos - 1
+
+    // Generate array of video indices and shuffle to get random selection
+    const allVideoIndices = Array.from({ length: totalVideos }, (_, i) => i)
+    const shuffled = allVideoIndices.sort(() => Math.random() - 0.5)
+    const selectedVideos = shuffled.slice(0, couponVideoCount)
+
+    setSelectedCouponVideos(selectedVideos)
+
+    const imageIndices = {}
+    selectedVideos.forEach((videoIndex) => {
+      imageIndices[videoIndex] = Math.floor(Math.random() * 3)
+    })
+    setCouponImageIndices(imageIndices)
+    setCouponFound(false)
+
     const qrUrl = `http://nit-calicut.s3-website.ap-south-1.amazonaws.com/scan.html?session=${newSessionId}`
 
     console.log("QR Code URL:", qrUrl)
 
-    // Generate QR code
     QRCode.toDataURL(qrUrl, {
       width: 250,
       margin: 2,
@@ -250,12 +280,10 @@ const FileTransferPage = () => {
         console.error("Error generating QR code:", err)
       })
 
-    // Online/Offline status
     const handleOnlineStatus = () => setIsOnline(navigator.onLine)
     window.addEventListener("online", handleOnlineStatus)
     window.addEventListener("offline", handleOnlineStatus)
 
-    // Real-time clock update
     const timeInterval = setInterval(() => {
       const cd = new Date()
       setClockTime(
@@ -271,81 +299,47 @@ const FileTransferPage = () => {
   }, [])
 
   useEffect(() => {
-    // Scroll event handler for video-to-image navigation
     const handleScroll = (e) => {
       const imgContainer = document.querySelector(".img_container")
 
       if (imgContainer) {
         const imgRect = imgContainer.getBoundingClientRect()
 
-        // Check if user has scrolled to image container
         if (imgRect.top <= window.innerHeight && imgRect.bottom >= 0) {
           if (!hasScrolledToImages) {
             setHasScrolledToImages(true)
             setShowScrollIndicator(false)
-            setIsInImageContainer(true)
-            // Sync image set with current video when first scrolling to images
             setCurrentImageSet(currentVideoIdx)
-            setCurrentImageIndex(0)
           }
         } else {
           setHasScrolledToImages(false)
           setShowScrollIndicator(true)
-          setIsInImageContainer(false)
         }
       }
     }
 
-    // Wheel event handler for vertical image sliding
-    const handleWheel = (e) => {
-      const imgContainer = document.querySelector(".img_container")
-      if (imgContainer && imgContainer.contains(e.target)) {
-        e.preventDefault()
-        e.stopPropagation()
-
-        // Only handle vertical scroll (deltaY) within image container
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          if (e.deltaY > 0) {
-            // Scroll down - next image set
-            setCurrentImageIndex((prev) => (prev + 1) % 3)
-          } else {
-            // Scroll up - previous image set
-            setCurrentImageIndex((prev) => (prev - 1 + 3) % 3)
-          }
-        }
-      }
-    }
-
-    // Add event listeners with proper options
     window.addEventListener("scroll", handleScroll, { passive: true })
-    window.addEventListener("wheel", handleWheel, { passive: false })
 
     return () => {
-      // Clean up event listeners
       window.removeEventListener("scroll", handleScroll)
-      window.removeEventListener("wheel", handleWheel)
     }
-  }, [hasScrolledToImages, currentVideoIdx]) // Added dependencies
+  }, [hasScrolledToImages, currentVideoIdx])
 
-  // Fetch files directly from session folder - FIXED
   const fetchSessionFiles = async (sessionId) => {
     try {
       setLoading(true)
       console.log(`🔍 Fetching files directly from session folder: ${sessionId}`)
 
-      // Check if we're in Electron and get files from session folder
       if (window.electronAPI) {
         console.log("🔌 Using Electron API to get session files")
         try {
           const result = await window.electronAPI.getSessionFiles(sessionId)
           console.log("📁 Session Files Response:", result)
 
-          // If session folder doesn't exist, try to download from S3 first
           if (result.exists === false) {
             console.log("📭 Session folder does not exist yet - downloading from S3")
             await downloadS3FilesToSession(sessionId)
 
-            // After downloading, try again to get the files
             const retryResult = await window.electronAPI.getSessionFiles(sessionId)
             console.log("📁 Retry Session Files Response:", retryResult)
 
@@ -362,7 +356,6 @@ const FileTransferPage = () => {
             console.log("📭 No files found in session folder, trying S3 download...")
             await downloadS3FilesToSession(sessionId)
 
-            // Final retry after download
             const finalResult = await window.electronAPI.getSessionFiles(sessionId)
             if (finalResult.success && finalResult.files && finalResult.files.length > 0) {
               setFiles(finalResult.files)
@@ -375,7 +368,6 @@ const FileTransferPage = () => {
         }
       }
 
-      // If still no files, show empty state
       console.log("📭 No files available for this session")
       setFiles([])
     } catch (error) {
@@ -386,7 +378,6 @@ const FileTransferPage = () => {
     }
   }
 
-  // Download S3 files to session folder - ENHANCED
   const downloadS3FilesToSession = async (sessionId) => {
     try {
       console.log("🌐 Checking for S3 files to download")
@@ -427,7 +418,6 @@ const FileTransferPage = () => {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
-  // Modern digital clock logic
   const zeroPadding = (num, digit) => {
     let zero = ""
     for (let i = 0; i < digit; i++) zero += "0"
@@ -462,12 +452,10 @@ const FileTransferPage = () => {
     }
   }
 
-  // Handle back to file selection
   const handleBackToSelection = () => {
     setShowIntegratedView(false)
   }
 
-  // Handle navigate to payment
   const handleNavigateToPayment = (paymentData) => {
     navigate("/payment", { state: paymentData })
   }
@@ -493,7 +481,6 @@ const FileTransferPage = () => {
     setPaymentProcessing(true)
 
     try {
-      // Load Razorpay script
       const loadRazorpayScript = () =>
         new Promise((resolve, reject) => {
           if (window.Razorpay) return resolve(window.Razorpay)
@@ -517,7 +504,6 @@ const FileTransferPage = () => {
         name: "Print Shop",
         description: `Paper Print Order - Session ${sessionId}`,
         handler: (response) => {
-          // Start printing after successful payment
           processPrintShopOrder(response)
         },
         prefill: {
@@ -578,7 +564,6 @@ const FileTransferPage = () => {
           const product = products.find((p) => p.id === cartItem.id)
           if (!product) continue
 
-          // Print each copy of the product
           for (let copy = 1; copy <= cartItem.quantity; copy++) {
             completedJobs++
             setPrintProgress({
@@ -591,7 +576,7 @@ const FileTransferPage = () => {
             try {
               const printOptions = {
                 filePath: product.pdfPath,
-                copies: 1, // Print one copy at a time for better control
+                copies: 1,
                 pageRange: "all",
                 customPages: "",
                 colorMode: product.printSettings.colorMode,
@@ -611,7 +596,6 @@ const FileTransferPage = () => {
               printErrors.push(`${product.name} (Copy ${copy})`)
             }
 
-            // Small delay between print jobs
             await new Promise((r) => setTimeout(r, 1500))
           }
         }
@@ -631,7 +615,6 @@ const FileTransferPage = () => {
         console.log("❌ Failed jobs:", printErrors)
       }
 
-      // Reset cart and states after successful printing
       setTimeout(() => {
         setCartItems([])
         setMobileNumber("")
@@ -647,11 +630,65 @@ const FileTransferPage = () => {
     }
   }
 
-  const imageSets = [
+  const imageGroups = [
     [imgAd1, imgAd2, imgAd3], // Video 1 images
     [imgAd4, imgAd5, imgAd6], // Video 2 images
     [imgAd7, imgAd8, imgAd9], // Video 3 images
   ]
+
+  const handleImageHover = (imageIndex) => {
+    if (
+      selectedCouponVideos.includes(currentImageSet) &&
+      imageIndex === couponImageIndices[currentImageSet] &&
+      !couponFound
+    ) {
+      // Clear any existing timeout
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout)
+      }
+
+      // Set new timeout for 1.2 seconds
+      const timeout = setTimeout(() => {
+        setShowCouponCard(true)
+        setCouponFound(true)
+      }, 1200)
+
+      setHoverTimeout(timeout)
+    }
+  }
+
+  const handleImageLeave = () => {
+    // Clear timeout if user stops hovering before 1.2 seconds
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+  }
+
+  const handleCloseCouponCard = () => {
+    setShowCouponCard(false)
+
+    const currentVideoHasCoupon = selectedCouponVideos.includes(currentImageSet)
+
+    if (currentVideoHasCoupon) {
+      let newIndex
+      do {
+        newIndex = Math.floor(Math.random() * 3)
+      } while (newIndex === couponImageIndices[currentImageSet])
+
+      setCouponImageIndices((prev) => ({
+        ...prev,
+        [currentImageSet]: newIndex,
+      }))
+    }
+    setCouponFound(false)
+
+    // Clear any remaining timeout
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+  }
 
   return (
     <div className="file-transfer-page">
@@ -683,12 +720,11 @@ const FileTransferPage = () => {
             <div id="clock" className="nav-clock">
               <p className="time">{clockTime}</p>
             </div>
-            
           </div>
         </div>
       </div>
 
-      <div className="section-toggle" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div className="section-toggle" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <button
           className={`toggle-btn ${activeSection === "session" ? "active" : ""}`}
           onClick={() => setActiveSection("session")}
@@ -701,7 +737,6 @@ const FileTransferPage = () => {
         >
           Paper shop
         </button>
-        
       </div>
 
       {activeSection === "session" ? (
@@ -715,12 +750,21 @@ const FileTransferPage = () => {
                 <div className="qr-placeholder">Generating QR Code...</div>
               )}
             </div>
-            <div className="session-info" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="session-info" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <img src={sessionIcon || "/placeholder.svg"} alt="Session" className="session-icon" />
               <span className="session-id">{sessionId}</span>
               <button
                 onClick={() => window.location.reload()}
-                style={{ background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 14px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                style={{
+                  background: "#28a745",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "4px 14px",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
               >
                 Refresh
               </button>
@@ -764,7 +808,6 @@ const FileTransferPage = () => {
 
                   {loading ? (
                     <div className="card">
-                      
                       <div class="loader">
                         <p>loading</p>
                         <div class="words">
@@ -775,7 +818,6 @@ const FileTransferPage = () => {
                           <span class="word">buttons</span>
                         </div>
                       </div>
-
                     </div>
                   ) : files.length === 0 ? (
                     <div className="empty-state">No files found in session folder</div>
@@ -792,11 +834,19 @@ const FileTransferPage = () => {
                               <div className="file-icon-container">
                                 {isPdf ? (
                                   <div className="pdf-icon">
-                                    <img src={pdf} alt="PDF" style={{ width: 32, height: 32, objectFit: 'contain', display: 'block' }} />
+                                    <img
+                                      src={pdf || "/placeholder.svg"}
+                                      alt="PDF"
+                                      style={{ width: 32, height: 32, objectFit: "contain", display: "block" }}
+                                    />
                                   </div>
                                 ) : (
                                   <div className="image-icon">
-                                    <img src={image} alt="Image" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block' }} />
+                                    <img
+                                      src={image || "/placeholder.svg"}
+                                      alt="Image"
+                                      style={{ width: 24, height: 24, objectFit: "contain", display: "block" }}
+                                    />
                                   </div>
                                 )}
                               </div>
@@ -887,7 +937,6 @@ const FileTransferPage = () => {
         <div className="cart-overlay" onClick={() => setShowCart(false)}>
           <div className="modern-cart-container" onClick={(e) => e.stopPropagation()}>
             <div className="unified-cart">
-              {/* Cart Header */}
               <div className="cart-header-modern">
                 <label className="cart-title">Your cart</label>
                 <button className="cart-close-btn-modern" onClick={() => setShowCart(false)}>
@@ -898,7 +947,6 @@ const FileTransferPage = () => {
                 </button>
               </div>
 
-              {/* Cart Items Section */}
               {cartItems.length === 0 ? (
                 <div className="cart-empty-modern">
                   <svg
@@ -1024,7 +1072,6 @@ const FileTransferPage = () => {
                 </div>
               )}
 
-              {/* Mobile Number Input Section */}
               {cartItems.length > 0 && (
                 <div className="mobile-input-section">
                   <input
@@ -1043,7 +1090,6 @@ const FileTransferPage = () => {
                 </div>
               )}
 
-              {/* Printing Progress Section */}
               {printingInProgress && (
                 <div className="printing-progress-section">
                   <div className="progress-title">Printing Progress</div>
@@ -1063,7 +1109,6 @@ const FileTransferPage = () => {
                 </div>
               )}
 
-              {/* Checkout Section */}
               {cartItems.length > 0 && (
                 <div className="checkout-section">
                   <div className="checkout-details">
@@ -1101,9 +1146,6 @@ const FileTransferPage = () => {
       )}
 
       <div className="video_ad">
-        {/* Video scroll indicator overlay */}
-        
-
         <div class="video_container">
           <video
             className="video_ad_player"
@@ -1112,33 +1154,46 @@ const FileTransferPage = () => {
             muted
             playsInline
             onEnded={handleVideoEnd}
-            key={currentVideoIdx} // force reload on source change
+            key={currentVideoIdx}
           ></video>
         </div>
 
         <div class="img_container">
-          {imageSets[currentImageSet].map((imgSrc, index) => (
+          {imageGroups[currentImageSet].map((imgSrc, index) => (
             <img
               key={index}
               src={imgSrc || "/placeholder.svg"}
-              className={`img_ad ${index === currentImageIndex ? "active" : ""}`}
+              className="img_ad"
               alt={`Ad ${currentImageSet + 1}.${index + 1}`}
+              onMouseEnter={() => handleImageHover(index)}
+              onMouseLeave={handleImageLeave}
             />
           ))}
         </div>
 
-        {hasScrolledToImages && (
-          <div className="image-scroll-indicator">
-            <div className="vertical-scroll-arrow">
-              <div className="arrow-up"></div>
-              <div className="arrow-down"></div>
+        {showCouponCard && (
+          <div className="coupon-overlay">
+            <div className="coupon-card">
+              <div className="close-btn" onClick={handleCloseCouponCard}>
+                ×
+              </div>
+              <div className="innvera-logo">INNVERA</div>
+              <div className="offer-text">10% flat off valid only on pdf/canvas prints only</div>
+              <div className="promo-codes">
+                <div className="promo-code">{generateSessionCouponCode(sessionId)}</div>
+                <div
+                  className="promo-code copy-btn"
+                  onClick={() => navigator.clipboard.writeText(generateSessionCouponCode(sessionId))}
+                >
+                  COPY
+                </div>
+              </div>
+              <div className="validity">Valid Till: only for this session</div>
             </div>
-            <span className="vertical-scroll-text">Scroll vertically to browse images</span>
           </div>
         )}
       </div>
 
-      {/* Integrated FilePage Section - 75% width - FIXED GAPS */}
       {showIntegratedView && activeSection === "session" && (
         <div className="integrated-files-section">
           <IntegratedFilePage files={files} sessionId={sessionId} onNavigateToPayment={handleNavigateToPayment} />

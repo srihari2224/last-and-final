@@ -34,9 +34,8 @@
   max-width: 460px;
   z-index: 999;
   background: #303030;
-  padding: 8px; 
+  padding: 8px;
   display: flex;
-  
 
   margin-top: 7px;
   margin-left: 0px;
@@ -268,7 +267,7 @@
 }
 
 .file-transfer-page .session-id {
-  font-family:jersey, monospace;
+  font-family: jersey, monospace;
 }
 
 /* Storage Section - Below QR code */
@@ -1807,7 +1806,6 @@
   height: 1100px;
   border-radius: 20px;
   margin-left: -30px;
-  
 }
 
 /* Added video scroll indicator overlay */
@@ -1856,31 +1854,30 @@
   position: relative;
   overflow: hidden;
   padding: 20px;
-  
 }
 
-/* Updated image styling for side-by-side layout */
+/* Updated image styling to remove scroll effects and add hover effects */
 .file-transfer-page .img_container img {
-  margin-top: -30px;;
+  margin-top: -30px;
   width: 520px;
   height: 400px;
   object-fit: cover;
-  transition: all 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
-  opacity: 1;
-  transform: scale(0.95);
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-/* Enhanced active image styling */
-.file-transfer-page .img_container img.active {
+  transition: all 0.3s cubic-bezier(0.4, 0.2, 0.2, 1);
   opacity: 1;
   transform: scale(1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+/* Added hover effect to make images rise up and scale */
+.file-transfer-page .img_container img:hover {
+  transform: scale(1.05) translateY(-10px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  z-index: 10;
 }
 
 /* Updated navigation indicators positioning */
-
 
 .file-transfer-page .nav-dot {
   width: 12px;
@@ -1998,97 +1995,182 @@
   }
 }
 
-
-
-.card {
-  /* color used to softly clip top and bottom of the .words container */
-  --bg-color: #ffffff;
-  background-color: var(--bg-color);
-  padding: 1rem 2rem;
-  width:500px;
-  margin-left:50px;
-  margin-top:40px;
-  overflow:hidden;
-}
-.loader {
-  color: rgb(0, 0, 0);
-  font-family: "Poppins", sans-serif;
-  font-weight: 500;
-  font-size: 25px;
-  -webkit-box-sizing: content-box;
-  box-sizing: content-box;
-  height: 40px;
-  padding: 0px;
-  display: -webkit-box;
-  display: -ms-flexbox;
+/* Added coupon card overlay styles based on the provided HTML */
+.file-transfer-page .coupon-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  border-radius: 8px;
-  overflow:hidden;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.words {
-  overflow: hidden;
+/* Updated coupon card to appear in center with rotation and swipe-up animation */
+.file-transfer-page .coupon-card {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  border-radius: 16px;
+  padding: 20px 24px;
+  width: 100%;
+  max-width: 500px;
   position: relative;
+  overflow: hidden;
+  animation: swipeUpRotate 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  margin: 0 20px;
+  transform: rotate(-3deg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
-.words::after {
+
+/* Added new animation for swipe up to center with rotation */
+@keyframes swipeUpRotate {
+  0% {
+    transform: translateY(100vh) rotate(-8deg) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-20px) rotate(-1deg) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) rotate(-3deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.file-transfer-page .close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  color: white;
+  font-size: 24px;
+  font-weight: 300;
+  cursor: pointer;
+  z-index: 4;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+/* Added hover effect for close button */
+.file-transfer-page .close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* Responsive design for coupon card */
+@media (max-width: 480px) {
+  .file-transfer-page .coupon-card {
+    padding: 16px 20px;
+    margin: 0 10px;
+  }
+
+  .file-transfer-page .offer-text {
+    font-size: 20px;
+  }
+
+  .file-transfer-page .promo-codes {
+    flex-direction: column;
+  }
+
+  .file-transfer-page .promo-code {
+    text-align: center;
+  }
+}
+
+/* Added semi-circular cutouts on left and right sides */
+.file-transfer-page .coupon-card::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    var(--bg-color) 10%,
-    transparent 30%,
-    transparent 70%,
-    var(--bg-color) 90%
-  );
-  z-index: 20;
+  left: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  z-index: 3;
 }
 
-.word {
-  display: block;
-  height: 100%;
-  padding-left: 6px;
-  color: #1ac4d3;
-  animation: spin_4991 4s infinite;
+.file-transfer-page .coupon-card::after {
+  content: "";
+  position: absolute;
+  right: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  z-index: 3;
 }
 
-@keyframes spin_4991 {
-  10% {
-    -webkit-transform: translateY(-102%);
-    transform: translateY(-102%);
-  }
+.file-transfer-page .uber-logo {
+  background: #000;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 18px;
+  display: inline-block;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 2;
+}
 
-  25% {
-    -webkit-transform: translateY(-100%);
-    transform: translateY(-100%);
-  }
+.file-transfer-page .offer-text {
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 2;
+  text-align: left;
+}
 
-  35% {
-    -webkit-transform: translateY(-202%);
-    transform: translateY(-202%);
-  }
+.file-transfer-page .promo-codes {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 2;
+}
 
-  50% {
-    -webkit-transform: translateY(-200%);
-    transform: translateY(-200%);
-  }
+.file-transfer-page .promo-code {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  60% {
-    -webkit-transform: translateY(-302%);
-    transform: translateY(-302%);
-  }
+.file-transfer-page .promo-code:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
 
-  75% {
-    -webkit-transform: translateY(-300%);
-    transform: translateY(-300%);
-  }
-
-  85% {
-    -webkit-transform: translateY(-402%);
-    transform: translateY(-402%);
-  }
-
-  100% {
-    -webkit-transform: translateY(-400%);
-    transform: translateY(-400%);
-  }
+.file-transfer-page .validity {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  position: relative;
+  z-index: 2;
 }
