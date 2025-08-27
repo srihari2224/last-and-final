@@ -1805,7 +1805,7 @@
 
 
 .theme-switch {
-  --toggle-size: 30px;
+  --toggle-size: 14px;
   /* the size is adjusted using font-size,
      this is not transform scale,
      so you can choose any size */
