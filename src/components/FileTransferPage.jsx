@@ -238,8 +238,6 @@ const FileTransferPage = () => {
   }
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" })
-
     const newSessionId = generateUniqueSessionId()
     setSessionId(newSessionId)
     console.log("🆔 Generated session ID:", newSessionId)
@@ -651,7 +649,7 @@ const FileTransferPage = () => {
       const timeout = setTimeout(() => {
         setShowCouponCard(true)
         setCouponFound(true)
-      }, 1200)
+      }, 400)
 
       setHoverTimeout(timeout)
     }
@@ -807,15 +805,15 @@ const FileTransferPage = () => {
                   </div>
 
                   {loading ? (
-                    <div className="card">
-                      <div class="loader">
+                    <div className="loading-animation-card">
+                      <div className="text-loader">
                         <p>loading</p>
-                        <div class="words">
-                          <span class="word">buttons</span>
-                          <span class="word">forms</span>
-                          <span class="word">switches</span>
-                          <span class="word">cards</span>
-                          <span class="word">buttons</span>
+                        <div className="rotating-words">
+                          <span className="animated-word">buttons</span>
+                          <span className="animated-word">forms</span>
+                          <span className="animated-word">switches</span>
+                          <span className="animated-word">cards</span>
+                          <span className="animated-word">buttons</span>
                         </div>
                       </div>
                     </div>
@@ -860,10 +858,33 @@ const FileTransferPage = () => {
                         })}
                       </div>
 
-                      <div className="next-button-container">
-                        <button className="modern-next-btn" onClick={handleNext} disabled={files.length === 0}>
-                          Next
+                      <div className="">
+
+
+                        <button class="Btn-Container" onClick={handleNext} disabled={files.length === 0}>
+                          <span class="text">let's go!</span>
+                          <span class="icon-Container">
+                            <svg
+                              width="16"
+                              height="19"
+                              viewBox="0 0 16 19"
+                              fill="nones"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+                              <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+                              <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+                              <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+                              <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+                              <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+                              <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+                              <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+                              <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+                              <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+                            </svg>
+                          </span>
                         </button>
+
                       </div>
                     </>
                   )}
