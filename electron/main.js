@@ -918,5 +918,3 @@ ipcMain.handle("print-canvas", async (event, canvasData) => {
     }
   }
 })
-
-

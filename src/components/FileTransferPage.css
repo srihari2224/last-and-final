@@ -13,7 +13,7 @@
 .file-transfer-page .navbar {
   background: #000000;
   color: white;
-  padding: 1rem 2rem;
+  padding: 20px 2rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   position: fixed;
   top: 0;
@@ -28,7 +28,7 @@
 /* Updated section toggle to modern rounded pill design */
 .file-transfer-page .section-toggle {
   position: fixed;
-  top: 54px;
+  top: 57px;
   left: 0;
   width: 25%;
   max-width: 460px;
@@ -857,14 +857,14 @@
 }
 
 .file-transfer-page .price-old {
-  font-size: 13px;
+  font-size: 18px;
   text-decoration: line-through;
-  color: #a1a1aa;
+  color: #e23c33;
   margin-right: 8px;
 }
 
 .file-transfer-page .price-new {
-  font-size: 18px;
+  font-size: 25px;
   font-weight: 700;
   color: #18181b;
 }
@@ -875,7 +875,7 @@
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -924,9 +924,10 @@
 }
 
 .file-transfer-page .product-stock {
-  font-size: 10px;
+  font-size: 15px;
   font-weight: 600;
   color: #22c55e;
+  margin-top:-12px;
 }
 
 /* Responsive adjustments for smaller 25% space */
@@ -1181,8 +1182,8 @@
 /* Added cart sidebar styles */
 .file-transfer-page .cart-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
+  top: 100;
+  left: 100;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -1190,7 +1191,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: -20px;
 }
 
 .file-transfer-page .modern-cart-container {
@@ -1478,6 +1479,12 @@
   order: 2;
 }
 
+.file-transfer-page .app-logo {
+  height: 50px;
+  margin-top:-10px;
+  
+}
+
 .file-transfer-page .navi_moto {
   width: 5px;
   height: 20px;
@@ -1486,7 +1493,7 @@
 
 /* Unified cart styling instead of separate cards */
 .file-transfer-page .unified-cart {
-  width: 350px;
+  width: 460px;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
@@ -1614,7 +1621,10 @@
 
 .file-transfer-page .mobile-input-section {
   padding: 15px 20px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+
+
 }
 
 .file-transfer-page .mobile-input {
@@ -1622,7 +1632,7 @@
   padding: 12px 16px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 20px;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
 }

@@ -33,6 +33,7 @@ import plane from "../assets/plane.png"
 import margin from "../assets/margin.png"
 
 import shop from "../assets/shop.svg"
+import logo from "../assets/logo.png"
 
 const FileTransferPage = () => {
   const videoSources = [videoAdSrc, videoAdsec2, videoAdsec3]
@@ -240,6 +241,7 @@ const FileTransferPage = () => {
   useEffect(() => {
     const newSessionId = generateUniqueSessionId()
     setSessionId(newSessionId)
+    localStorage.setItem("currentSessionId", newSessionId)
     console.log("🆔 Generated session ID:", newSessionId)
 
     const totalVideos = videoSources.length
@@ -693,8 +695,10 @@ const FileTransferPage = () => {
       <div className="navbar">
         <div className="nav-content">
           <div class="logo">
-            <div class="logo-icon"></div>
-            <span class="logo-text">INNVERA</span>
+            <div class="logo-icon">
+              <img src={logo} alt="Logo" className="app-logo" />  
+            </div>
+            
           </div>
           <div className="nav-status">
             <div
@@ -859,8 +863,6 @@ const FileTransferPage = () => {
                       </div>
 
                       <div className="">
-
-
                         <button class="Btn-Container" onClick={handleNext} disabled={files.length === 0}>
                           <span class="text">let's go!</span>
                           <span class="icon-Container">
@@ -884,7 +886,6 @@ const FileTransferPage = () => {
                             </svg>
                           </span>
                         </button>
-
                       </div>
                     </>
                   )}
@@ -930,8 +931,8 @@ const FileTransferPage = () => {
                         <span>Add to Cart</span>
                         <svg
                           className="cart-icon"
-                          width="16"
-                          height="16"
+                          width="19"
+                          height="19"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
