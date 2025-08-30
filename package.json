@@ -4,11 +4,39 @@
   "private": true,
   "type": "module",
   "scripts": {
+    
     "dev": "vite",
     "build": "vite build",
     "start": "next start",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "vite build && cross-env NODE_ENV=development electron .",
+    "electron:build": "vite build && electron-builder build --publish never",
+    "electron:package": "vite build && electron-builder build --publish never --win nsis",
+    "electron:make": "vite build && electron-builder build --publish never -c.mac.target=default"
+  },
+  "build": {
+    "appId": "com.prinit.desktop",
+    "productName": "Prinit",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -71,6 +99,8 @@
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
+    "cross-env": "^10.0.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^8.45.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",

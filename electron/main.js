@@ -29,10 +29,15 @@ function createWindow() {
     show: false,
   })
 
-  mainWindow.loadURL("http://localhost:5173").catch((err) => {
-    console.error("Failed to load local React app:", err)
-    mainWindow.loadURL("https://last-and-final.vercel.app")
-  })
+  // Load the app in development or production
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.loadURL("http://localhost:5173").catch((err) => {
+      console.error("Failed to load local React app:", err)
+      mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    })
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+  }
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show()
