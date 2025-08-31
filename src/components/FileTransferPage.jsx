@@ -34,6 +34,8 @@ import margin from "../assets/margin.png"
 
 import shop from "../assets/shop.svg"
 import logo from "../assets/logo.png"
+import logo2 from "../assets/logo2.png"
+
 
 const FileTransferPage = () => {
   const videoSources = [videoAdSrc, videoAdsec2, videoAdsec3]
@@ -960,6 +962,10 @@ const FileTransferPage = () => {
           <div className="modern-cart-container" onClick={(e) => e.stopPropagation()}>
             <div className="unified-cart">
               <div className="cart-header-modern">
+                <div>
+                  <img class="cart-logo"src={logo2}></img>
+
+                </div>
                 <label className="cart-title">Your cart</label>
                 <button className="cart-close-btn-modern" onClick={() => setShowCart(false)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

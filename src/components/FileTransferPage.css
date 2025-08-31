@@ -1202,6 +1202,12 @@
   overflow-y: auto;
 }
 
+.cart-logo{
+  height:40px;
+  width:146px;
+
+}
+
 .file-transfer-page .cart-sidebar {
   width: 400px;
   height: 55vh;
