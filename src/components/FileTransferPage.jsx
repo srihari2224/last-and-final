@@ -1200,7 +1200,7 @@ const FileTransferPage = () => {
         </div>
 
         {showCouponCard && (
-          <div className="coupon-overlay">
+          <div className="coupon-overlay" onClick={handleCloseCouponCard}>
             <div className="coupon-card">
               <div className="close-btn" onClick={handleCloseCouponCard}>
                 ×

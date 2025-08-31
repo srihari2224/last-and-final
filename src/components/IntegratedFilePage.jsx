@@ -737,14 +737,14 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
       }
 
       // Reset for next user
-      setTimeout(() => {
-        setPages([{ id: 1, items: [], colorMode: "color" }])
-        setActivePage(1)
-        setPrintQueue([])
-        setMobileNumber("")
-        setPrintingInProgress(false)
-        setPrintProgress({ currentJob: "", completed: 0, total: 0, status: "idle" })
-      }, 3000)
+      // setTimeout(() => {
+      //   setPages([{ id: 1, items: [], colorMode: "color" }])
+      //   setActivePage(1)
+      //   setPrintQueue([])
+      //   setMobileNumber("")
+      //   setPrintingInProgress(false)
+      //   setPrintProgress({ currentJob: "", completed: 0, total: 0, status: "idle" })
+      // }, 3000)
     } catch (error) {
       console.error("❌ Silent printing failed:", error)
       setPrintingInProgress(false)
@@ -1006,18 +1006,67 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                       }}
                     >
                       <div className="canvas-image-container">
-                        <img
-                          src={getFileUrl(item.file) || "/placeholder.svg"}
-                          alt={item.file.name}
+                        <div
                           className="canvas-image"
-                          onError={(e) => {
-                            e.target.src = "/placeholder.svg"
-                          }}
-                        />
+                          data-scale="1"
+                          style={{ transform: "scale(1)", transformOrigin: "center center" }}
+                        >
+                          <img
+                            src={getFileUrl(item.file) || "/placeholder.svg"}
+                            alt={item.file.name}
+                            className="canvas-image-inner"
+                            onError={(e) => {
+                              e.target.src = "/placeholder.svg"
+                            }}
+                          />
+                        </div>
                       </div>
 
                       {selectedItem && selectedItem.id === item.id && (
                         <div className="item-controls">
+                          {/* Zoom Out */}
+                          <button
+                            className="item-zoom item-zoom-out"
+                            onClick={(e) => {
+                              const controls = e.currentTarget.closest(".item-controls")
+                              const container = controls?.previousElementSibling
+                              const target = container?.querySelector(".canvas-image")
+                              if (target) {
+                                const current = Number(target.dataset.scale || "1")
+                                const next = Math.max(0.2, +(current - 0.1).toFixed(2))
+                                target.dataset.scale = String(next)
+                                target.style.transform = `scale(${next})`
+                              }
+                            }}
+                            aria-label="Zoom out"
+                            title="Zoom out"
+                            type="button"
+                          >
+                            <span aria-hidden="true">−</span>
+                          </button>
+
+                          {/* Zoom In */}
+                          <button
+                            className="item-zoom item-zoom-in"
+                            onClick={(e) => {
+                              const controls = e.currentTarget.closest(".item-controls")
+                              const container = controls?.previousElementSibling
+                              const target = container?.querySelector(".canvas-image")
+                              if (target) {
+                                const current = Number(target.dataset.scale || "1")
+                                const next = Math.min(3, +(current + 0.1).toFixed(2))
+                                target.dataset.scale = String(next)
+                                target.style.transform = `scale(${next})`
+                              }
+                            }}
+                            aria-label="Zoom in"
+                            title="Zoom in"
+                            type="button"
+                          >
+                            <span aria-hidden="true">+</span>
+                          </button>
+
+                          {/* Existing delete button - unchanged */}
                           <button
                             className="item-delete"
                             onClick={() => {
@@ -1031,6 +1080,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                               )
                               setSelectedItem(null)
                             }}
+                            type="button"
                           >
                             <Trash size={14} />
                           </button>
@@ -1160,76 +1210,115 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
               <div className="mobile-input-section">
                 <label className="mobile-input-label" htmlFor="mobile-number">
-                  Mobile Number *
+                  MOBILE NUMBER
                 </label>
-                <input
-                  id="mobile-number"
-                  type="tel"
-                  className={`mobile-input ${mobileError ? "error" : ""}`}
-                  placeholder="enter here"
-                  value={mobileNumber}
-                  onChange={handleMobileNumberChange}
-                  maxLength={10}
-                />
-                {mobileError && <div className="mobile-error">{mobileError}</div>}
+                <div className="mobile-input-wrapper">
+                  <div className="mobile-prefix">
+                    <img src="/images/india-flag.png" alt="India" className="country-flag" />
+                    <span className="dial-code">+91</span>
+                  </div>
+                  <input
+                    id="mobile-number"
+                    type="tel"
+                    className={`mobile-input ${mobileError ? "error" : ""}`}
+                    placeholder="Enter mobile number"
+                    value={mobileNumber}
+                    onChange={handleMobileNumberChange}
+                    maxLength={10}
+                  />
+                </div>
               </div>
+              {mobileError && <div className="mobile-error">{mobileError}</div>}
+            </div>
 
-              <button
-                className="payment-button"
-                onClick={handlePaymentClick}
-                disabled={calculateTotalCost() === 0 || paymentProcessing || !mobileNumber || printingInProgress}
-              >
-                <span className="btn-text">
-                  {printingInProgress ? "Printing..." : paymentProcessing ? "Loading Payment..." : "Pay Now"}
-                </span>
-              </button>
+            <button
+              className="payment-button"
+              onClick={handlePaymentClick}
+              disabled={calculateTotalCost() === 0 || paymentProcessing || !mobileNumber || printingInProgress}
+            >
+              <span className="btn-text">
+                {printingInProgress ? "Printing..." : paymentProcessing ? "Loading Payment..." : "Pay Now"}
+              </span>
+            </button>
 
-              {(paymentProcessing || printingInProgress) && (
-                <div className="payment-processing">
-                  {printingInProgress && printProgress.status !== "idle" && (
-                    <div className="print-progress">
+            {(paymentProcessing || printingInProgress) && (
+              <div className="payment-processing">
+                {printingInProgress && printProgress.status !== "idle" && (
+                  <div className="print-progress">
+                    <div
+                      className="progress-bar"
+                      style={{
+                        width: "100%",
+                        height: "4px",
+                        background: "#f0f0f0",
+                        borderRadius: "2px",
+                        marginBottom: "8px",
+                      }}
+                    >
                       <div
-                        className="progress-bar"
+                        className="progress-fill"
                         style={{
                           width: "100%",
-                          height: "4px",
-                          background: "#f0f0f0",
+                          height: "100%",
+                          backgroundColor:
+                            printProgress.status === "completed"
+                              ? "#28a745"
+                              : printProgress.status === "completed_with_errors"
+                                ? "#ffc107"
+                                : "#007bff",
                           borderRadius: "2px",
-                          marginBottom: "8px",
+                          transition: "width 0.3s ease",
                         }}
-                      >
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            backgroundColor:
-                              printProgress.status === "completed"
-                                ? "#28a745"
-                                : printProgress.status === "completed_with_errors"
-                                  ? "#ffc107"
-                                  : "#007bff",
-                            borderRadius: "2px",
-                            transition: "width 0.3s ease",
-                          }}
-                        ></div>
-                      </div>
-                      <div className="progress-text" style={{ fontSize: "12px", color: "#666" }}>
-                        {printProgress.currentJob} ({printProgress.completed}/{printProgress.total})
-                      </div>
+                      ></div>
                     </div>
-                  )}
-                  <p style={{ textAlign: "center", marginTop: "10px", color: "#666", fontSize: "14px" }}>
-                    {printingInProgress
-                      ? "Printing with your selected options..."
-                      : "Loading Razorpay payment gateway..."}
-                  </p>
-                </div>
-              )}
-            </div>
+                    <div className="progress-text" style={{ fontSize: "12px", color: "#666" }}>
+                      {printProgress.currentJob} ({printProgress.completed}/{printProgress.total})
+                    </div>
+                  </div>
+                )}
+                <p style={{ textAlign: "center", marginTop: "10px", color: "#666", fontSize: "14px" }}>
+                  {printingInProgress
+                    ? "Printing with your selected options..."
+                    : "Loading Razorpay payment gateway..."}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {!paymentProcessing &&
+        (printProgress.status === "completed" || printProgress.status === "completed_with_errors") && (
+          <section className="feedback-bar" role="region" aria-label="Feedback">
+            <div className="feedback-content">
+              <h3 className="feedback-title">Give feedback</h3>
+              <p className="feedback-subtitle">How was your printing experience?</p>
+              <div className="feedback-emojis" role="group" aria-label="Rate your experience">
+                <button className="emoji-option" type="button" aria-label="Terrible">
+                  😞
+                </button>
+                <button className="emoji-option" type="button" aria-label="Bad">
+                  😕
+                </button>
+                <button className="emoji-option" type="button" aria-label="Okay">
+                  🙂
+                </button>
+                <button className="emoji-option" type="button" aria-label="Good">
+                  😄
+                </button>
+                <button className="emoji-option" type="button" aria-label="Amazing">
+                  🤩
+                </button>
+              </div>
+              {/* Submit as a link to reload or return to initial stage without JS changes */}
+              <form className="feedback-form" method="GET" action=".">
+                <button className="feedback-submit" type="submit">
+                  Submit
+                </button>
+              </form>
+            </div>
+          </section>
+        )}
 
       {/* PDF Print Settings Dialog */}
       {showEdgePrintDialog && (
