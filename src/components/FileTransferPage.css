@@ -32,7 +32,7 @@
   left: 0;
   width: 25%;
   max-width: 460px;
-  z-index: 999;
+  z-index: 0;
   background: #303030;
   padding: 8px;
   display: flex;
@@ -92,7 +92,7 @@
   position: fixed;
   right: 0;
   top: 62px; /* Align with navbar bottom - no gap */
-  width: 1560px;
+  width: 1509px;
   height: 100vh; /* Full height from navbar bottom */
   background: #ffffff;
   color: #000000;

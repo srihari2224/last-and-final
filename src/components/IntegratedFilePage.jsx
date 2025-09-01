@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Plus, Trash, ImageIcon, FileText, X } from "lucide-react"
 import "./IntegratedFilePage.css"
+import india from "../assets/india-flag-icon.svg"
 
 function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const canvasRef = useRef(null)
@@ -273,18 +274,20 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           if (page.id === activePage) {
             return {
               ...page,
-              items: [
-                ...page.items,
-                {
-                  id: `${draggingFile.name}-${Date.now()}`,
-                  file: draggingFile,
-                  x,
-                  y,
-                  width: dimensions.width,
-                  height: dimensions.height,
-                  rotation: 0,
-                },
-              ],
+                                items: [
+                    ...page.items,
+                    {
+                      id: `${draggingFile.name}-${Date.now()}`,
+                      file: draggingFile,
+                      x,
+                      y,
+                      width: dimensions.width,
+                      height: dimensions.height,
+                      originalWidth: dimensions.width,
+                      originalHeight: dimensions.height,
+                      rotation: 0,
+                    },
+                  ],
             }
           }
           return page
@@ -1029,13 +1032,38 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                             className="item-zoom item-zoom-out"
                             onClick={(e) => {
                               const controls = e.currentTarget.closest(".item-controls")
+                              const canvasItem = controls?.closest(".canvas-item")
                               const container = controls?.previousElementSibling
                               const target = container?.querySelector(".canvas-image")
-                              if (target) {
+                              if (target && canvasItem) {
                                 const current = Number(target.dataset.scale || "1")
                                 const next = Math.max(0.2, +(current - 0.1).toFixed(2))
                                 target.dataset.scale = String(next)
                                 target.style.transform = `scale(${next})`
+                                
+                                // Update the canvas item size to accommodate the zoomed image
+                                const originalWidth = item.width
+                                const originalHeight = item.height
+                                const newWidth = originalWidth * next
+                                const newHeight = originalHeight * next
+                                
+                                canvasItem.style.width = `${newWidth}px`
+                                canvasItem.style.height = `${newHeight}px`
+                                
+                                // Update the item in state to persist the new dimensions
+                                setPages(pages.map(page => {
+                                  if (page.id === activePage) {
+                                    return {
+                                      ...page,
+                                      items: page.items.map(i => 
+                                        i.id === item.id 
+                                          ? { ...i, width: newWidth, height: newHeight }
+                                          : i
+                                      )
+                                    }
+                                  }
+                                  return page
+                                }))
                               }
                             }}
                             aria-label="Zoom out"
@@ -1050,13 +1078,38 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                             className="item-zoom item-zoom-in"
                             onClick={(e) => {
                               const controls = e.currentTarget.closest(".item-controls")
+                              const canvasItem = controls?.closest(".canvas-item")
                               const container = controls?.previousElementSibling
                               const target = container?.querySelector(".canvas-image")
-                              if (target) {
+                              if (target && canvasItem) {
                                 const current = Number(target.dataset.scale || "1")
                                 const next = Math.min(3, +(current + 0.1).toFixed(2))
                                 target.dataset.scale = String(next)
                                 target.style.transform = `scale(${next})`
+                                
+                                // Update the canvas item size to accommodate the zoomed image
+                                const originalWidth = item.width
+                                const originalHeight = item.height
+                                const newWidth = originalWidth * next
+                                const newHeight = originalHeight * next
+                                
+                                canvasItem.style.width = `${newWidth}px`
+                                canvasItem.style.height = `${newHeight}px`
+                                
+                                // Update the item in state to persist the new dimensions
+                                setPages(pages.map(page => {
+                                  if (page.id === activePage) {
+                                    return {
+                                      ...page,
+                                      items: page.items.map(i => 
+                                        i.id === item.id 
+                                          ? { ...i, width: newWidth, height: newHeight }
+                                          : i
+                                      )
+                                    }
+                                  }
+                                  return page
+                                }))
                               }
                             }}
                             aria-label="Zoom in"
@@ -1064,6 +1117,49 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                             type="button"
                           >
                             <span aria-hidden="true">+</span>
+                          </button>
+
+                          {/* Reset Zoom */}
+                          <button
+                            className="item-reset-zoom"
+                            onClick={(e) => {
+                              const controls = e.currentTarget.closest(".item-controls")
+                              const canvasItem = controls?.closest(".canvas-item")
+                              const container = controls?.previousElementSibling
+                              const target = container?.querySelector(".canvas-image")
+                              if (target && canvasItem) {
+                                // Reset to original scale
+                                target.dataset.scale = "1"
+                                target.style.transform = "scale(1)"
+                                
+                                // Reset the canvas item size to original dimensions
+                                const originalWidth = item.originalWidth || 250
+                                const originalHeight = item.originalHeight || 250
+                                
+                                canvasItem.style.width = `${originalWidth}px`
+                                canvasItem.style.height = `${originalHeight}px`
+                                
+                                // Update the item in state to persist the original dimensions
+                                setPages(pages.map(page => {
+                                  if (page.id === activePage) {
+                                    return {
+                                      ...page,
+                                      items: page.items.map(i => 
+                                        i.id === item.id 
+                                          ? { ...i, width: originalWidth, height: originalHeight }
+                                          : i
+                                      )
+                                    }
+                                  }
+                                  return page
+                                }))
+                              }
+                            }}
+                            aria-label="Reset zoom"
+                            title="Reset zoom"
+                            type="button"
+                          >
+                            <span aria-hidden="true">⟲</span>
                           </button>
 
                           {/* Existing delete button - unchanged */}
@@ -1214,11 +1310,11 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                 </label>
                 <div className="mobile-input-wrapper">
                   <div className="mobile-prefix">
-                    <img src="/images/india-flag.png" alt="India" className="country-flag" />
+                    <img src={india} alt="India" className="country-flag" />
                     <span className="dial-code">+91</span>
                   </div>
                   <input
-                    id="mobile-number"
+                    id="mobile-number"  
                     type="tel"
                     className={`mobile-input ${mobileError ? "error" : ""}`}
                     placeholder="Enter mobile number"

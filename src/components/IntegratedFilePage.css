@@ -737,6 +737,28 @@
   transform: scale(1.1);
 }
 
+.integrated-files-page .item-reset-zoom {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  line-height: 1;
+  background-color: #ffc107; /* yellow */
+}
+
+.integrated-files-page .item-reset-zoom:hover {
+  background-color: #e0a800;
+  transform: scale(1.1);
+}
+
 .integrated-files-page .item-delete {
   width: 40px;
   height: 40px;
@@ -1833,9 +1855,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 40vh; /* required 40% of screen */
+  height: 100vh; /* required 40% of screen */
   width: 100%;
-  background: #ffffff;
+  background: #000000d6;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   z-index: 9999;
@@ -1856,13 +1878,13 @@
 .integrated-files-page .feedback-title {
   margin: 0;
   font-weight: 700;
-  color: #111;
+  color: #ffffff;
 }
 
 .integrated-files-page .feedback-subtitle {
   margin: 0;
-  color: #555;
-  font-size: 14px;
+  color: #ffffff;
+  font-size: 21px;
 }
 
 .integrated-files-page .feedback-emojis {
@@ -1872,13 +1894,13 @@
 }
 
 .integrated-files-page .emoji-option {
-  width: 60px;
-  height: 60px;
+  width: 106px;
+  height: 106px;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  font-size: 28px;
+  font-size: 69px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
