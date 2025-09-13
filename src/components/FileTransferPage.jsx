@@ -263,7 +263,7 @@ const FileTransferPage = () => {
     setCouponImageIndices(imageIndices)
     setCouponFound(false)
 
-    const qrUrl = `http://nit-calicut.s3-website.ap-south-1.amazonaws.com/scan.html?session=${newSessionId}`
+  const qrUrl = `https://innvera.vercel.app/?session=${newSessionId}`;
 
     console.log("QR Code URL:", qrUrl)
 
