@@ -29,9 +29,9 @@ function createWindow() {
     show: false,
   })
 
-  mainWindow.loadURL("http://localhost:5173").catch((err) => {
+  mainWindow.loadURL("https://last-and-final.vercel.app").catch((err) => {
     console.error("Failed to load local React app:", err)
-    mainWindow.loadURL("https://last-and-final.vercel.app")
+
   })
 
   mainWindow.once("ready-to-show", () => {
