@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import { useState, useRef, useEffect } from "react"
 import { Plus, Trash, ImageIcon, FileText, X } from "lucide-react"
 import "./IntegratedFilePage.css"
@@ -15,6 +17,10 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const [draggingItem, setDraggingItem] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [selectedItem, setSelectedItem] = useState(null)
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizeHandle, setResizeHandle] = useState(null)
+  const [isRotating, setIsRotating] = useState(false)
+  const [rotationStart, setRotationStart] = useState({ angle: 0, centerX: 0, centerY: 0 })
 
   // PDF preview dialog and settings
   const [showEdgePrintDialog, setShowEdgePrintDialog] = useState(false)
@@ -53,6 +59,11 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const [couponError, setCouponError] = useState("")
   const [clipboardCode, setClipboardCode] = useState("")
   const [showPasteButton, setShowPasteButton] = useState(false)
+
+  const [showMoreOptions, setShowMoreOptions] = React.useState(null)
+  const [showFilters, setShowFilters] = React.useState(false)
+  const [cropMode, setCropMode] = useState(null)
+  const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 0, height: 0 })
 
   // Categorize files
   const fileCategories = {
@@ -249,12 +260,340 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   // Drag and drop handlers
   const handleDragStart = (file) => setDraggingFile(file)
 
+  const getItemCenter = (item) => ({
+    x: item.x + item.width / 2,
+    y: item.y + item.height / 2,
+  })
+
+  const getAngle = (centerX, centerY, pointX, pointY) => {
+    return Math.atan2(pointY - centerY, pointX - centerX) * (180 / Math.PI)
+  }
+
+  const duplicateItem = (item) => {
+    const newItem = {
+      ...item,
+      id: `${item.file.name}-${Date.now()}`,
+      x: item.x + 20,
+      y: item.y + 20,
+    }
+
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: [...page.items, newItem],
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const toggleItemLock = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.map((i) => (i.id === item.id ? { ...i, locked: !i.locked } : i)),
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const deleteItem = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.filter((i) => i.id !== item.id),
+          }
+        }
+        return page
+      }),
+    )
+    setSelectedItem(null)
+  }
+
+  const rotateItem90 = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.map((i) => (i.id === item.id ? { ...i, rotation: (i.rotation || 0) + 90 } : i)),
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const flipItemHorizontal = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.map((i) => (i.id === item.id ? { ...i, flipX: !i.flipX } : i)),
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const flipItemVertical = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.map((i) => (i.id === item.id ? { ...i, flipY: !i.flipY } : i)),
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const updateItemTransparency = (item, opacity) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.map((i) => (i.id === item.id ? { ...i, opacity: opacity / 100 } : i)),
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const bringToFront = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          const otherItems = page.items.filter((i) => i.id !== item.id)
+          return {
+            ...page,
+            items: [...otherItems, item],
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const sendToBack = (item) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          const otherItems = page.items.filter((i) => i.id !== item.id)
+          return {
+            ...page,
+            items: [item, ...otherItems],
+          }
+        }
+        return page
+      }),
+    )
+  }
+
+  const startCrop = (item) => {
+    setCropMode(item.id)
+    setCropArea({ x: 0, y: 0, width: item.width, height: item.height })
+  }
+
+  const applyCrop = (item) => {
+    // Create a canvas to crop the image
+    const canvas = document.createElement("canvas")
+    const ctx = canvas.getContext("2d")
+    const img = new Image()
+
+    img.onload = () => {
+      canvas.width = cropArea.width
+      canvas.height = cropArea.height
+
+      // Draw the cropped portion
+      ctx.drawImage(img, cropArea.x, cropArea.y, cropArea.width, cropArea.height, 0, 0, cropArea.width, cropArea.height)
+
+      // Convert to blob and update the item
+      canvas.toBlob((blob) => {
+        const croppedFile = new File([blob], item.file.name, { type: "image/png" })
+        setPages(
+          pages.map((page) => {
+            if (page.id === activePage) {
+              return {
+                ...page,
+                items: page.items.map((i) =>
+                  i.id === item.id ? { ...i, file: croppedFile, width: cropArea.width, height: cropArea.height } : i,
+                ),
+              }
+            }
+            return page
+          }),
+        )
+      })
+    }
+
+    img.src = getFileUrl(item.file)
+    setCropMode(null)
+  }
+
+  const applyFilter = (item, filterName) => {
+    setPages(
+      pages.map((page) => {
+        if (page.id === activePage) {
+          return {
+            ...page,
+            items: page.items.map((i) => (i.id === item.id ? { ...i, filter: filterName } : i)),
+          }
+        }
+        return page
+      }),
+    )
+    setShowFilters(false)
+  }
+
   const handleItemDragStart = (e, item) => {
+    if (item.locked) return
     e.stopPropagation()
     const rect = e.currentTarget.getBoundingClientRect()
     setDraggingItem(item)
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    setSelectedItem(item) // Keep item selected during drag
   }
+
+  const handleResizeStart = (e, handle, item) => {
+    if (item.locked) return
+    e.stopPropagation()
+    setIsResizing(true)
+    setResizeHandle(handle)
+    setSelectedItem(item)
+  }
+
+  const handleRotationStart = (e, item) => {
+    if (item.locked) return
+    e.stopPropagation()
+    const center = getItemCenter(item)
+    const angle = getAngle(center.x, center.y, e.clientX, e.clientY)
+    setIsRotating(true)
+    setRotationStart({ angle: angle - item.rotation, centerX: center.x, centerY: center.y })
+    setSelectedItem(item)
+  }
+
+  const handleMouseMove = (e) => {
+    if (isResizing && selectedItem && resizeHandle) {
+      const canvasRect = canvasRef.current.getBoundingClientRect()
+      const mouseX = e.clientX - canvasRect.left
+      const mouseY = e.clientY - canvasRect.top
+
+      let newWidth = selectedItem.width
+      let newHeight = selectedItem.height
+      let newX = selectedItem.x
+      let newY = selectedItem.y
+
+      switch (resizeHandle) {
+        case "nw": // Top-left corner
+          newWidth = selectedItem.width + (selectedItem.x - mouseX)
+          newHeight = selectedItem.height + (selectedItem.y - mouseY)
+          newX = mouseX
+          newY = mouseY
+          break
+        case "ne": // Top-right corner
+          newWidth = mouseX - selectedItem.x
+          newHeight = selectedItem.height + (selectedItem.y - mouseY)
+          newY = mouseY
+          break
+        case "sw": // Bottom-left corner
+          newWidth = selectedItem.width + (selectedItem.x - mouseX)
+          newHeight = mouseY - selectedItem.y
+          newX = mouseX
+          break
+        case "se": // Bottom-right corner
+          newWidth = mouseX - selectedItem.x
+          newHeight = mouseY - selectedItem.y
+          break
+        case "n": // Top edge
+          newHeight = selectedItem.height + (selectedItem.y - mouseY)
+          newY = mouseY
+          break
+        case "s": // Bottom edge
+          newHeight = mouseY - selectedItem.y
+          break
+        case "w": // Left edge
+          newWidth = selectedItem.width + (selectedItem.x - mouseX)
+          newX = mouseX
+          break
+        case "e": // Right edge
+          newWidth = mouseX - selectedItem.x
+          break
+      }
+
+      // Minimum size constraints
+      newWidth = Math.max(20, newWidth)
+      newHeight = Math.max(20, newHeight)
+
+      setPages(
+        pages.map((page) => {
+          if (page.id === activePage) {
+            return {
+              ...page,
+              items: page.items.map((item) =>
+                item.id === selectedItem.id ? { ...item, width: newWidth, height: newHeight, x: newX, y: newY } : item,
+              ),
+            }
+          }
+          return page
+        }),
+      )
+    } else if (isRotating && selectedItem) {
+      const canvasRect = canvasRef.current.getBoundingClientRect()
+      const mouseX = e.clientX - canvasRect.left
+      const mouseY = e.clientY - canvasRect.top
+      const center = getItemCenter(selectedItem)
+      const currentAngle = getAngle(center.x, center.y, mouseX, mouseY)
+      const newRotation = currentAngle - rotationStart.angle
+
+      setPages(
+        pages.map((page) => {
+          if (page.id === activePage) {
+            return {
+              ...page,
+              items: page.items.map((item) =>
+                item.id === selectedItem.id ? { ...item, rotation: newRotation } : item,
+              ),
+            }
+          }
+          return page
+        }),
+      )
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsResizing(false)
+    setResizeHandle(null)
+    setIsRotating(false)
+    setRotationStart({ angle: 0, centerX: 0, centerY: 0 })
+  }
+
+  React.useEffect(() => {
+    if (isResizing || isRotating) {
+      document.addEventListener("mousemove", handleMouseMove)
+      document.addEventListener("mouseup", handleMouseUp)
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove)
+        document.removeEventListener("mouseup", handleMouseUp)
+      }
+    }
+  }, [isResizing, isRotating, selectedItem, resizeHandle, pages, activePage])
 
   const handleDragOver = (e) => e.preventDefault()
 
@@ -274,20 +613,21 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           if (page.id === activePage) {
             return {
               ...page,
-                                items: [
-                    ...page.items,
-                    {
-                      id: `${draggingFile.name}-${Date.now()}`,
-                      file: draggingFile,
-                      x,
-                      y,
-                      width: dimensions.width,
-                      height: dimensions.height,
-                      originalWidth: dimensions.width,
-                      originalHeight: dimensions.height,
-                      rotation: 0,
-                    },
-                  ],
+              items: [
+                ...page.items,
+                {
+                  id: `${draggingFile.name}-${Date.now()}`,
+                  file: draggingFile,
+                  x,
+                  y,
+                  width: dimensions.width,
+                  height: dimensions.height,
+                  originalWidth: dimensions.width,
+                  originalHeight: dimensions.height,
+                  rotation: 0,
+                  locked: false,
+                },
+              ],
             }
           }
           return page
@@ -771,6 +1111,16 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
   const [currentView, setCurrentView] = useState("canvas")
 
+  const filterCategories = {
+    Natural: ["Fresco", "Belvedere", "Flint", "Luna", "Aero", "Myst"],
+    Warm: ["Bali", "Capri", "Latte", "Bronz", "Sandi", "Sangri"],
+    Cool: ["Scandi", "Nordic", "Astro", "Whim", "Solene", "Clarity", "Epic"],
+    Retro: ["Street", "Cali", "Festive", "Retro", "Film", "1977", "Vintage"],
+    "Dramatic / Moody": ["Drama", "Noir", "Edge", "Fade", "Mono", "Grayscale"],
+    "Summer / Vivid": ["Summer", "Pop", "Vivid", "Colorpop", "Boost"],
+    "Other Popular": ["Selfie", "Streetlight", "Glow", "Afterglow", "Cinematic", "Duotone"],
+  }
+
   return (
     <div className="integrated-files-page">
       <div className="main-content">
@@ -880,6 +1230,47 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {showFilters && (
+              <div className="filters-section">
+                <div className="filters-header">
+                  <button onClick={() => setShowFilters(false)} className="back-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                    </svg>
+                  </button>
+                  <h3>Filters</h3>
+                  <button onClick={() => setShowFilters(false)} className="close-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {Object.entries(filterCategories).map(([category, filters]) => (
+                  <div key={category} className="filter-category">
+                    <h4>{category}</h4>
+                    <div className="filter-grid">
+                      {filters.map((filter) => (
+                        <div
+                          key={filter}
+                          className="filter-item"
+                          onClick={() => selectedItem && applyFilter(selectedItem, filter.toLowerCase())}
+                        >
+                          <div className="filter-preview">
+                            <img
+                              src={selectedItem ? getFileUrl(selectedItem.file) : "/placeholder.svg"}
+                              alt={filter}
+                              className={`filter-${filter.toLowerCase()}`}
+                            />
+                          </div>
+                          <span>{filter}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -994,18 +1385,22 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                         top: `${item.y}px`,
                         width: `${item.width}px`,
                         height: `${item.height}px`,
-                        transform: `rotate(${item.rotation}deg)`,
                         border:
                           selectedItem && selectedItem.id === item.id
-                            ? `2px solid #000000`
-                            : `1px dashed rgba(0,0,0,0.3)`,
+                            ? `2px solid #8b5cf6`
+                            : item.locked
+                              ? `2px solid #ef4444`
+                              : `1px dashed rgba(0,0,0,0.3)`,
+                        cursor: item.locked ? "not-allowed" : "move",
                       }}
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedItem(item)
                       }}
                       onMouseDown={(e) => {
-                        handleItemDragStart(e, item)
+                        if (!item.locked) {
+                          handleItemDragStart(e, item)
+                        }
                       }}
                     >
                       <div className="canvas-image-container">
@@ -1017,7 +1412,14 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                           <img
                             src={getFileUrl(item.file) || "/placeholder.svg"}
                             alt={item.file.name}
-                            className="canvas-image-inner"
+                            className={`canvas-image-inner ${item.filter ? `filter-${item.filter}` : ""}`}
+                            style={{
+                              transform: `rotate(${item.rotation || 0}deg) ${item.flipX ? "scaleX(-1)" : ""} ${item.flipY ? "scaleY(-1)" : ""}`,
+                              opacity: item.opacity || 1,
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
                             onError={(e) => {
                               e.target.src = "/placeholder.svg"
                             }}
@@ -1025,161 +1427,160 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                         </div>
                       </div>
 
-                      {selectedItem && selectedItem.id === item.id && (
-                        <div className="item-controls">
-                          {/* Zoom Out */}
-                          <button
-                            className="item-zoom item-zoom-out"
-                            onClick={(e) => {
-                              const controls = e.currentTarget.closest(".item-controls")
-                              const canvasItem = controls?.closest(".canvas-item")
-                              const container = controls?.previousElementSibling
-                              const target = container?.querySelector(".canvas-image")
-                              if (target && canvasItem) {
-                                const current = Number(target.dataset.scale || "1")
-                                const next = Math.max(0.2, +(current - 0.1).toFixed(2))
-                                target.dataset.scale = String(next)
-                                target.style.transform = `scale(${next})`
-                                
-                                // Update the canvas item size to accommodate the zoomed image
-                                const originalWidth = item.width
-                                const originalHeight = item.height
-                                const newWidth = originalWidth * next
-                                const newHeight = originalHeight * next
-                                
-                                canvasItem.style.width = `${newWidth}px`
-                                canvasItem.style.height = `${newHeight}px`
-                                
-                                // Update the item in state to persist the new dimensions
-                                setPages(pages.map(page => {
-                                  if (page.id === activePage) {
-                                    return {
-                                      ...page,
-                                      items: page.items.map(i => 
-                                        i.id === item.id 
-                                          ? { ...i, width: newWidth, height: newHeight }
-                                          : i
-                                      )
-                                    }
-                                  }
-                                  return page
-                                }))
-                              }
-                            }}
-                            aria-label="Zoom out"
-                            title="Zoom out"
-                            type="button"
-                          >
-                            <span aria-hidden="true">−</span>
-                          </button>
+                      {selectedItem && selectedItem.id === item.id && !item.locked && (
+                        <>
+                          <div className="resize-handles">
+                            {/* Corner handles */}
+                            <div
+                              className="resize-handle nw"
+                              onMouseDown={(e) => handleResizeStart(e, "nw", item)}
+                            ></div>
+                            <div
+                              className="resize-handle ne"
+                              onMouseDown={(e) => handleResizeStart(e, "ne", item)}
+                            ></div>
+                            <div
+                              className="resize-handle sw"
+                              onMouseDown={(e) => handleResizeStart(e, "sw", item)}
+                            ></div>
+                            <div
+                              className="resize-handle se"
+                              onMouseDown={(e) => handleResizeStart(e, "se", item)}
+                            ></div>
+                            {/* Side handles */}
+                            <div className="resize-handle n" onMouseDown={(e) => handleResizeStart(e, "n", item)}></div>
+                            <div className="resize-handle s" onMouseDown={(e) => handleResizeStart(e, "s", item)}></div>
+                            <div className="resize-handle w" onMouseDown={(e) => handleResizeStart(e, "w", item)}></div>
+                            <div className="resize-handle e" onMouseDown={(e) => handleResizeStart(e, "e", item)}></div>
+                          </div>
 
-                          {/* Zoom In */}
-                          <button
-                            className="item-zoom item-zoom-in"
-                            onClick={(e) => {
-                              const controls = e.currentTarget.closest(".item-controls")
-                              const canvasItem = controls?.closest(".canvas-item")
-                              const container = controls?.previousElementSibling
-                              const target = container?.querySelector(".canvas-image")
-                              if (target && canvasItem) {
-                                const current = Number(target.dataset.scale || "1")
-                                const next = Math.min(3, +(current + 0.1).toFixed(2))
-                                target.dataset.scale = String(next)
-                                target.style.transform = `scale(${next})`
-                                
-                                // Update the canvas item size to accommodate the zoomed image
-                                const originalWidth = item.width
-                                const originalHeight = item.height
-                                const newWidth = originalWidth * next
-                                const newHeight = originalHeight * next
-                                
-                                canvasItem.style.width = `${newWidth}px`
-                                canvasItem.style.height = `${newHeight}px`
-                                
-                                // Update the item in state to persist the new dimensions
-                                setPages(pages.map(page => {
-                                  if (page.id === activePage) {
-                                    return {
-                                      ...page,
-                                      items: page.items.map(i => 
-                                        i.id === item.id 
-                                          ? { ...i, width: newWidth, height: newHeight }
-                                          : i
-                                      )
-                                    }
-                                  }
-                                  return page
-                                }))
-                              }
-                            }}
-                            aria-label="Zoom in"
-                            title="Zoom in"
-                            type="button"
-                          >
-                            <span aria-hidden="true">+</span>
-                          </button>
+                          <div className="canva-toolbar">
+                            <button onClick={() => rotateItem90(item)} title="Rotate 90°">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => toggleItemLock(item)}
+                              title={item.locked ? "Unlock" : "Lock"}
+                              className={item.locked ? "locked" : ""}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                {item.locked ? (
+                                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                                ) : (
+                                  <path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z" />
+                                )}
+                              </svg>
+                            </button>
+                            <button onClick={() => duplicateItem(item)} title="Duplicate">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                              </svg>
+                            </button>
+                            <button onClick={() => deleteItem(item)} title="Delete">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => (cropMode === item.id ? applyCrop(item) : startCrop(item))}
+                              title={cropMode === item.id ? "Apply Crop" : "Crop"}
+                              className={cropMode === item.id ? "active" : ""}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => setShowMoreOptions(showMoreOptions === item.id ? null : item.id)}
+                              title="More options"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                              </svg>
+                            </button>
+                          </div>
 
-                          {/* Reset Zoom */}
-                          <button
-                            className="item-reset-zoom"
-                            onClick={(e) => {
-                              const controls = e.currentTarget.closest(".item-controls")
-                              const canvasItem = controls?.closest(".canvas-item")
-                              const container = controls?.previousElementSibling
-                              const target = container?.querySelector(".canvas-image")
-                              if (target && canvasItem) {
-                                // Reset to original scale
-                                target.dataset.scale = "1"
-                                target.style.transform = "scale(1)"
-                                
-                                // Reset the canvas item size to original dimensions
-                                const originalWidth = item.originalWidth || 250
-                                const originalHeight = item.originalHeight || 250
-                                
-                                canvasItem.style.width = `${originalWidth}px`
-                                canvasItem.style.height = `${originalHeight}px`
-                                
-                                // Update the item in state to persist the original dimensions
-                                setPages(pages.map(page => {
-                                  if (page.id === activePage) {
-                                    return {
-                                      ...page,
-                                      items: page.items.map(i => 
-                                        i.id === item.id 
-                                          ? { ...i, width: originalWidth, height: originalHeight }
-                                          : i
-                                      )
-                                    }
-                                  }
-                                  return page
-                                }))
-                              }
-                            }}
-                            aria-label="Reset zoom"
-                            title="Reset zoom"
-                            type="button"
-                          >
-                            <span aria-hidden="true">⟲</span>
-                          </button>
+                          {showMoreOptions === item.id && (
+                            <div className="more-options-dropdown">
+                              <button onClick={() => flipItemHorizontal(item)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M15 21h2v-2h-2v2zm4-12h2V7h-2v2zM3 5v14c0 1.1.9 2 2 2h4v-2H5V5h4V3H5c-1.1 0-2 .9-2 2zm16-2v2h2c0-1.1-.9-2-2-2zm-8 2h2V3h-2v2zm4 0h2V3h-2v2zm0 16h2v-2h-2v2zm-4 0h2v-2h-2v2zm4-8h2v-2h-2v2zm0 4h2v-2h-2v2z" />
+                                </svg>
+                                Flip Horizontal
+                              </button>
+                              <button onClick={() => flipItemVertical(item)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M16 17.01V10h-2v7.01h-1L15 19l2-1.99h-1zM9 3L7 4.99h1V12h2V4.99h1L9 3zm4 0h2v2h-2V3zm0 16h2v2h-2v-2zM21 9h-2v2h2V9zm0 4h-2v2h2v-2zm0-8c1.1 0 2 .9 2 2h-2V5zM1 7h2v2H1V7zm0 4h2v2H1v-2zm0 4h2v2H1v-2zm2 4v-2H1c0 1.1.9 2 2 2z" />
+                                </svg>
+                                Flip Vertical
+                              </button>
+                              <div className="transparency-control">
+                                <label>Transparency</label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={(item.opacity || 1) * 100}
+                                  onChange={(e) => updateItemTransparency(item, e.target.value)}
+                                  className="transparency-slider"
+                                />
+                                <span>{Math.round((item.opacity || 1) * 100)}</span>
+                              </div>
+                              <div className="position-controls">
+                                <label>Position</label>
+                                <div className="position-buttons">
+                                  <button onClick={() => bringToFront(item)}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h7v-2H6V4h7V2h1zm4 4l-4 4h3v6h2v-6h3l-4-4z" />
+                                    </svg>
+                                    To Front
+                                  </button>
+                                  <button onClick={() => sendToBack(item)}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M18 2H10c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h7v-2h-7V4h7V2h1zm-4 14l4-4h-3V6h-2v6H9l4 4z" />
+                                    </svg>
+                                    To Back
+                                  </button>
+                                </div>
+                              </div>
+                              <button onClick={() => setShowFilters(true)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" />
+                                </svg>
+                                Filters
+                              </button>
+                            </div>
+                          )}
 
-                          {/* Existing delete button - unchanged */}
-                          <button
-                            className="item-delete"
-                            onClick={() => {
-                              setPages(
-                                pages.map((page) => {
-                                  if (page.id === activePage) {
-                                    return { ...page, items: page.items.filter((i) => i.id !== item.id) }
-                                  }
-                                  return page
-                                }),
-                              )
-                              setSelectedItem(null)
-                            }}
-                            type="button"
-                          >
-                            <Trash size={14} />
-                          </button>
+                          {cropMode === item.id && (
+                            <div className="crop-overlay">
+                              <div
+                                className="crop-area"
+                                style={{
+                                  left: `${cropArea.x}px`,
+                                  top: `${cropArea.y}px`,
+                                  width: `${cropArea.width}px`,
+                                  height: `${cropArea.height}px`,
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          <div className="rotation-handle" onClick={() => rotateItem90(item)} title="Rotate 90°">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z" />
+                            </svg>
+                          </div>
+                        </>
+                      )}
+
+                      {item.locked && (
+                        <div className="lock-indicator">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                          </svg>
                         </div>
                       )}
                     </div>
@@ -1310,11 +1711,11 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                 </label>
                 <div className="mobile-input-wrapper">
                   <div className="mobile-prefix">
-                    <img src={india} alt="India" className="country-flag" />
+                    <img src={india || "/placeholder.svg"} alt="India" className="country-flag" />
                     <span className="dial-code">+91</span>
                   </div>
                   <input
-                    id="mobile-number"  
+                    id="mobile-number"
                     type="tel"
                     className={`mobile-input ${mobileError ? "error" : ""}`}
                     placeholder="Enter mobile number"
