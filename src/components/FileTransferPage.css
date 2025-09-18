@@ -92,7 +92,7 @@
   position: fixed;
   right: 0;
   top: 62px; /* Align with navbar bottom - no gap */
-  width: 1509px;
+  width: 1560px;
   height: 100vh; /* Full height from navbar bottom */
   background: #ffffff;
   color: #000000;
@@ -1209,7 +1209,7 @@
 }
 
 .file-transfer-page .cart-sidebar {
-  width: 400px;
+  width: 420px;
   height: 55vh;
   background: rgb(255, 255, 255);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
