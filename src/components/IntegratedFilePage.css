@@ -49,7 +49,7 @@
 
 /* Sidebar styles - Light Theme - MADE WIDER - FIXED GAPS */
 .integrated-files-page .sidebar {
-  width: 380px;
+  width: 320px;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1275,7 +1275,7 @@
 
 /* Right sidebar - MADE WIDER - FIXED GAPS */
 .integrated-files-page .right-sidebar {
-  width: 460px;
+  width: 400px;
   background-color: rgba(248, 249, 250, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
