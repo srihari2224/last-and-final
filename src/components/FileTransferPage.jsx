@@ -11,8 +11,8 @@ import wifiIcon from "../assets/wifi.svg"
 import IntegratedFilePage from "./IntegratedFilePage"
 
 import videoAdSrc from "../assets/1_video_1.mp4"
-import videoAdsec2 from "../assets/2_video_1.mp4"
-import videoAdsec3 from "../assets/3_video_1.mp4"
+import videoAdsec2 from "../assets/1_video_2.mp4"
+import videoAdsec3 from "../assets/1_video_3.mp4"
 
 import imgAd1 from "../assets/ad/1.1.png"
 import imgAd2 from "../assets/ad/1.2.png"
