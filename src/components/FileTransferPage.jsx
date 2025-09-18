@@ -97,17 +97,17 @@ const FileTransferPage = () => {
       pdfPath: import.meta.env.VITE_GRAPH || "C:\\Users\\msrih\\Downloads\\eastIT\\extras\\graph_A4.pdf",
       printSettings: { colorMode: "color", doubleSided: false },
     },
-    {
-      id: 3,
-      name: "MARGIN LINED PAPER",
-      category: "Stay inside the lines",
-      price: 1.49,
-      originalPrice: 4,
-      image: margin,
-      inStock: true,
-      pdfPath: import.meta.env.VITE_MARGIN || "C:\\Users\\msrih\\Downloads\\eastIT\\extras\\lined_A4.pdf",
-      printSettings: { colorMode: "blackwhite", doubleSided: true },
-    },
+    // {
+    //   id: 3,
+    //   name: "MARGIN LINED PAPER",
+    //   category: "Stay inside the lines",
+    //   price: 1.49,
+    //   originalPrice: 4,
+    //   image: margin,
+    //   inStock: true,
+    //   pdfPath: import.meta.env.VITE_MARGIN || "C:\\Users\\msrih\\Downloads\\eastIT\\extras\\lined_A4.pdf",
+    //   printSettings: { colorMode: "blackwhite", doubleSided: true },
+    // },
   ]
 
   const addToCart = (product) => {
@@ -500,7 +500,7 @@ const FileTransferPage = () => {
 
       const Razorpay = await loadRazorpayScript()
       const options = {
-        key: "rzp_test_MPGpNqI89C5GgW",
+        key: "rzp_live_RIHIU9s2p53vFn",
         amount: totalAmount * 100,
         currency: "INR",
         name: "Print Shop",
@@ -1035,7 +1035,7 @@ const FileTransferPage = () => {
                             />
                           </svg>
                         )}
-                        {item.name === "MARGIN LINED PAPER" && (
+                        {/* {item.name === "MARGIN LINED PAPER" && (
                           <svg
                             fill="none"
                             viewBox="0 0 60 60"
@@ -1052,7 +1052,7 @@ const FileTransferPage = () => {
                               d="M10 20h40M10 25h40M10 30h40M10 35h40M10 40h40M10 45h40"
                             ></path>
                           </svg>
-                        )}
+                        )} */}
                       </div>
                       <div className="item-details">
                         <div className="item-name">{item.name}</div>

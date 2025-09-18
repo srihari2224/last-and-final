@@ -1086,7 +1086,7 @@
 .file-transfer-page .storage-box-blur p {
   font-size: 1rem; /* reduced from 1.25rem to 1rem */
   padding-top: 0.75rem; /* reduced from 1rem to 0.75rem */
-  opacity: 0.2;
+  opacity: 2.2;
   margin: 0;
   font-weight: 600;
   color: #374151;
@@ -1820,7 +1820,7 @@
   width: 1660px;
   height: 1100px;
   border-radius: 20px;
-  margin-left: -30px;
+  margin-left: 5px;
 }
 
 /* Added video scroll indicator overlay */
