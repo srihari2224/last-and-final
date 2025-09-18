@@ -787,7 +787,9 @@ const FileTransferPage = () => {
                       <div className="work-2 absolute inset-1 bg-zinc-200 rounded-2xl transition-all ease duration-300 origin-bottom group-hover:[transform:rotateX(-38deg)]"></div>
                       <div className="work-1 absolute bottom-0 bg-gradient-to-t from-amber-500 to-amber-400 w-full h-[156px] rounded-2xl rounded-tr-none after:absolute after:content-[''] after:bottom-[99%] after:right-0 after:w-[146px] after:h-[16px] after:bg-amber-400 after:rounded-t-2xl before:absolute before:content-[''] before:-top-[10px] before:right-[142px] before:size-3 before:bg-amber-400 before:[clip-path:polygon(100%_14%,50%_100%,100%_100%);] transition-all ease duration-300 origin-bottom flex items-end group-hover:shadow-[inset_0_20px_40px_#fbbf24,_inset_0_-20px_40px_#d97706] group-hover:[transform:rotateX(-46deg)_translateY(1px)]"></div>
                     </div>
-                    <p className="text-3xl pt-4 opacity-20">UPLOADED FILES</p>
+                    <p className="text-3xl pt-4 opacity-20" style={{ color: "black" }}>UPLOADED FILES</p>
+                    <p className="text-3xl pt-4 opacity-20" style={{ color: "red" }}>CLICK HERE ONLY AFTER UPLODING FILES</p>
+
                   </section>
                 </div>
               ) : (
@@ -824,7 +826,7 @@ const FileTransferPage = () => {
                       </div>
                     </div>
                   ) : files.length === 0 ? (
-                    <div className="empty-state">No files found in session folder</div>
+                    <div className="empty-state"> Click REFRESH to start new SESSION | NO files found</div>
                   ) : (
                     <>
                       <div className="modern-files-list">

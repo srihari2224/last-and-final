@@ -61,7 +61,9 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const [showPasteButton, setShowPasteButton] = useState(false)
 
   const [showMoreOptions, setShowMoreOptions] = React.useState(null)
+  const moreOptionsRef = useRef(null)
   const [showFilters, setShowFilters] = React.useState(false)
+  const filtersRef = useRef(null)
   const [cropMode, setCropMode] = useState(null)
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 0, height: 0 })
 
@@ -197,7 +199,8 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   const getFileUrl = (file) => {
     const cachedData = fileDataCache[file.name]
     if (cachedData && cachedData.type === "image") return cachedData.dataUrl
-    return "/placeholder.svg"
+    // return a transparent pixel instead of broken placeholder to avoid flicker
+    return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
   }
 
   const buildCanvasPagesForPrint = () =>
@@ -456,11 +459,9 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           }
         }
         return page
-      })
+      }),
     )
-    // Also update selectedItem's filter if it's the same item
-    setSelectedItem((prev) => prev && prev.id === item.id ? { ...prev, filter: filterName } : prev)
-    setShowFilters(false)
+    // keep Filters open while user is browsing; it will close on outside click / Esc
   }
 
   const handleItemDragStart = (e, item) => {
@@ -929,7 +930,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
 
       const Razorpay = await loadRazorpayScript()
       const options = {
-        key: "rzp_test_MPGpNqI89C5GgW",
+        key: "rzp_live_RIHIU9s2p53vFn",
         amount: totalAmount * 100,
         currency: "INR",
         name: "Print Shop",
@@ -1103,12 +1104,34 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (canvasRef.current && !canvasRef.current.contains(e.target)) {
+      const clickedInCanvas = canvasRef.current && canvasRef.current.contains(e.target)
+      const clickedInMoreOptions = moreOptionsRef.current && moreOptionsRef.current.contains(e.target)
+      const clickedInFilters = filtersRef.current && filtersRef.current.contains(e.target)
+
+      if (!clickedInCanvas && !clickedInFilters && !clickedInMoreOptions) {
         setSelectedItem(null)
+      }
+      // Close More Options if clicking outside the dropdown
+      if (showMoreOptions && !clickedInMoreOptions) {
+        setShowMoreOptions(null)
+      }
+      // Close Filters if clicking outside the Filters panel
+      if (showFilters && !clickedInFilters) {
+        setShowFilters(false)
+      }
+    }
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        setShowMoreOptions(null)
+        setShowFilters(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    document.addEventListener("keydown", handleEsc)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleEsc)
+    }
   }, [])
 
   const [currentView, setCurrentView] = useState("canvas")
@@ -1235,7 +1258,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
               </div>
             )}
             {showFilters && (
-              <div className="filters-section">
+              <div className="filters-section" ref={filtersRef}>
                 <div className="filters-header">
                   <button onClick={() => setShowFilters(false)} className="back-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -1257,16 +1280,14 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                       {filters.map((filter) => (
                         <div
                           key={filter}
-                          className={`filter-item${!selectedItem ? ' disabled' : ''}`}
+                          className="filter-item"
                           onClick={() => selectedItem && applyFilter(selectedItem, filter.toLowerCase())}
-                          style={{ cursor: selectedItem ? 'pointer' : 'not-allowed', opacity: selectedItem ? 1 : 0.5 }}
                         >
                           <div className="filter-preview">
                             <img
-                              src={selectedItem && selectedItem.file ? getFileUrl(selectedItem.file) : "/placeholder.svg"}
+                              src={selectedItem ? getFileUrl(selectedItem.file) : "/placeholder.svg"}
                               alt={filter}
                               className={`filter-${filter.toLowerCase()}`}
-                              onError={e => { e.target.src = "/placeholder.svg"; }}
                             />
                           </div>
                           <span>{filter}</span>
@@ -1396,8 +1417,6 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                               ? `2px solid #ef4444`
                               : `1px dashed rgba(0,0,0,0.3)`,
                         cursor: item.locked ? "not-allowed" : "move",
-                        transform: `rotate(${item.rotation || 0}deg)`,
-                        transformOrigin: "center center",
                       }}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -1409,76 +1428,66 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                         }
                       }}
                     >
-                      <div className="canvas-image-container">
-                        <div
-                          className="canvas-image"
-                          data-scale="1"
-                          style={{ transform: "scale(1)", transformOrigin: "center center" }}
-                        >
-                          <img
-                            src={getFileUrl(item.file) || "/placeholder.svg"}
-                            alt={item.file.name}
-                            className={`canvas-image-inner${item.filter ? ` filter-${item.filter}` : ""}`}
-                            style={{
-                              transform: `${item.flipX ? "scaleX(-1) " : ""}${item.flipY ? "scaleY(-1) " : ""}`.trim(),
-                              opacity: item.opacity || 1,
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                            onError={(e) => {
-                              e.target.src = "/placeholder.svg"
-                            }}
-                          />
-                        </div>
+              <div className="canvas-image-container">
+                <div
+                  className="canvas-image"
+                  data-scale="1"
+                  style={{
+                    transform: `rotate(${item.rotation || 0}deg) ${item.flipX ? "scaleX(-1)" : ""} ${
+                      item.flipY ? "scaleY(-1)" : ""
+                    }`,
+                    transformOrigin: "center center",
+                  }}
+                >
+                  <img
+                    src={getFileUrl(item.file) || "/placeholder.svg"}
+                    alt={item.file.name}
+                    className={`canvas-image-inner ${item.filter ? `filter-${item.filter}` : ""}`}
+                    style={{
+                      opacity: item.opacity || 1,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.src = "/placeholder.svg"
+                    }}
+                  />
+                  {selectedItem && selectedItem.id === item.id && !item.locked && (
+                    <>
+                      <div
+                        className="resize-handles"
+                        style={{ outline: `2px solid #8b5cf6`, borderRadius: "6px" }}
+                      >
+                        {/* Corner handles */}
+                        <div className="resize-handle nw" onMouseDown={(e) => handleResizeStart(e, "nw", item)}></div>
+                        <div className="resize-handle ne" onMouseDown={(e) => handleResizeStart(e, "ne", item)}></div>
+                        <div className="resize-handle sw" onMouseDown={(e) => handleResizeStart(e, "sw", item)}></div>
+                        <div className="resize-handle se" onMouseDown={(e) => handleResizeStart(e, "se", item)}></div>
+                        {/* Side handles */}
+                        <div className="resize-handle n" onMouseDown={(e) => handleResizeStart(e, "n", item)}></div>
+                        <div className="resize-handle s" onMouseDown={(e) => handleResizeStart(e, "s", item)}></div>
+                        <div className="resize-handle w" onMouseDown={(e) => handleResizeStart(e, "w", item)}></div>
+                        <div className="resize-handle e" onMouseDown={(e) => handleResizeStart(e, "e", item)}></div>
                       </div>
+                      {/* <div className="rotation-handle" onClick={() => rotateItem90(item)} title="Rotate 90°">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z" />
+                        </svg>
+                      </div> */}
+                    </>
+                  )}
+                </div>
+              </div>
 
                       {selectedItem && selectedItem.id === item.id && !item.locked && (
                         <>
-                          <div className="resize-handles">
-                            {/* Corner handles */}
-                            <div
-                              className="resize-handle nw"
-                              onMouseDown={(e) => handleResizeStart(e, "nw", item)}
-                            ></div>
-                            <div
-                              className="resize-handle ne"
-                              onMouseDown={(e) => handleResizeStart(e, "ne", item)}
-                            ></div>
-                            <div
-                              className="resize-handle sw"
-                              onMouseDown={(e) => handleResizeStart(e, "sw", item)}
-                            ></div>
-                            <div
-                              className="resize-handle se"
-                              onMouseDown={(e) => handleResizeStart(e, "se", item)}
-                            ></div>
-                            {/* Side handles */}
-                            <div className="resize-handle n" onMouseDown={(e) => handleResizeStart(e, "n", item)}></div>
-                            <div className="resize-handle s" onMouseDown={(e) => handleResizeStart(e, "s", item)}></div>
-                            <div className="resize-handle w" onMouseDown={(e) => handleResizeStart(e, "w", item)}></div>
-                            <div className="resize-handle e" onMouseDown={(e) => handleResizeStart(e, "e", item)}></div>
-                          </div>
-
                           <div className="canva-toolbar">
-                            <button onClick={() => rotateItem90(item)} title="Rotate 90°">
+                            {/* <button onClick={() => rotateItem90(item)} title="Rotate 90°">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z" />
                               </svg>
-                            </button>
-                            <button
-                              onClick={() => toggleItemLock(item)}
-                              title={item.locked ? "Unlock" : "Lock"}
-                              className={item.locked ? "locked" : ""}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                {item.locked ? (
-                                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-                                ) : (
-                                  <path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z" />
-                                )}
-                              </svg>
-                            </button>
+                            </button> */}
                             <button onClick={() => duplicateItem(item)} title="Duplicate">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
@@ -1487,15 +1496,6 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                             <button onClick={() => deleteItem(item)} title="Delete">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => (cropMode === item.id ? applyCrop(item) : startCrop(item))}
-                              title={cropMode === item.id ? "Apply Crop" : "Crop"}
-                              className={cropMode === item.id ? "active" : ""}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z" />
                               </svg>
                             </button>
                             <button
@@ -1509,7 +1509,7 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                           </div>
 
                           {showMoreOptions === item.id && (
-                            <div className="more-options-dropdown">
+                            <div className="more-options-dropdown" ref={moreOptionsRef}>
                               <button onClick={() => flipItemHorizontal(item)}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M15 21h2v-2h-2v2zm4-12h2V7h-2v2zM3 5v14c0 1.1.9 2 2 2h4v-2H5V5h4V3H5c-1.1 0-2 .9-2 2zm16-2v2h2c0-1.1-.9-2-2-2zm-8 2h2V3h-2v2zm4 0h2V3h-2v2zm0 16h2v-2h-2v2zm-4 0h2v-2h-2v2zm4-8h2v-2h-2v2zm0 4h2v-2h-2v2z" />
@@ -1574,11 +1574,11 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                             </div>
                           )}
 
-                          <div className="rotation-handle" onClick={() => rotateItem90(item)} title="Rotate 90°">
+                          {/* <div className="rotation-handle" onClick={() => rotateItem90(item)} title="Rotate 90°">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z" />
                             </svg>
-                          </div>
+                          </div> */}
                         </>
                       )}
 
