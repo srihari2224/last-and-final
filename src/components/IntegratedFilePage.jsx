@@ -456,8 +456,10 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
           }
         }
         return page
-      }),
+      })
     )
+    // Also update selectedItem's filter if it's the same item
+    setSelectedItem((prev) => prev && prev.id === item.id ? { ...prev, filter: filterName } : prev)
     setShowFilters(false)
   }
 
@@ -1255,14 +1257,16 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                       {filters.map((filter) => (
                         <div
                           key={filter}
-                          className="filter-item"
+                          className={`filter-item${!selectedItem ? ' disabled' : ''}`}
                           onClick={() => selectedItem && applyFilter(selectedItem, filter.toLowerCase())}
+                          style={{ cursor: selectedItem ? 'pointer' : 'not-allowed', opacity: selectedItem ? 1 : 0.5 }}
                         >
                           <div className="filter-preview">
                             <img
-                              src={selectedItem ? getFileUrl(selectedItem.file) : "/placeholder.svg"}
+                              src={selectedItem && selectedItem.file ? getFileUrl(selectedItem.file) : "/placeholder.svg"}
                               alt={filter}
                               className={`filter-${filter.toLowerCase()}`}
+                              onError={e => { e.target.src = "/placeholder.svg"; }}
                             />
                           </div>
                           <span>{filter}</span>
@@ -1392,6 +1396,8 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                               ? `2px solid #ef4444`
                               : `1px dashed rgba(0,0,0,0.3)`,
                         cursor: item.locked ? "not-allowed" : "move",
+                        transform: `rotate(${item.rotation || 0}deg)`,
+                        transformOrigin: "center center",
                       }}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -1412,9 +1418,9 @@ function IntegratedFilePage({ files = [], sessionId, onNavigateToPayment }) {
                           <img
                             src={getFileUrl(item.file) || "/placeholder.svg"}
                             alt={item.file.name}
-                            className={`canvas-image-inner ${item.filter ? `filter-${item.filter}` : ""}`}
+                            className={`canvas-image-inner${item.filter ? ` filter-${item.filter}` : ""}`}
                             style={{
-                              transform: `rotate(${item.rotation || 0}deg) ${item.flipX ? "scaleX(-1)" : ""} ${item.flipY ? "scaleY(-1)" : ""}`,
+                              transform: `${item.flipX ? "scaleX(-1) " : ""}${item.flipY ? "scaleY(-1) " : ""}`.trim(),
                               opacity: item.opacity || 1,
                               width: "100%",
                               height: "100%",
